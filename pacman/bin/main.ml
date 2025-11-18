@@ -15,9 +15,11 @@
 open Tsdl
 
 let window_width = 800
-let window_height = 800
+let window_height = 600
 let ball_radius = 20
-let speed = 3
+let move = 3
+let ball_x = ref (window_width / 2)
+let ball_y = ref (window_height / 2)
 
 (*keeps ball in window*)
 let bound v min_v max_v =
@@ -57,6 +59,24 @@ let () =
                 while Sdl.poll_event (Some event) do
                   match Sdl.Event.(enum (get event typ)) with
                   | `Quit -> running := false
-                  | _ -> running := true
-                done
+                  | `Key_down -> (
+                      let press =
+                        Sdl.Event.get event Sdl.Event.keyboard_scancode
+                      in
+                      match Sdl.Scancode.enum press with
+                      | `Up -> ball_y := !ball_y - move
+                      | `Down -> ball_y := !ball_y + move
+                      | `Right -> ball_x := !ball_x + move
+                      | `Left -> ball_x := !ball_x - move
+                      | _ -> ())
+                  | _ -> ()
+                done;
+
+                Sdl.set_render_draw_color renderer 0 0 0 255 |> ignore;
+                Sdl.render_clear renderer |> ignore;
+
+                Sdl.set_render_draw_color renderer 255 255 0 255 |> ignore;
+                draw_circle renderer !ball_x !ball_y ball_radius;
+
+                Sdl.render_present renderer
               done))
