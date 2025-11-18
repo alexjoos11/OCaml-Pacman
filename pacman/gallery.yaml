@@ -1,0 +1,34 @@
+---
+# Members of your group.
+group:  
+  - name: Kirti Bagepalli
+    netid: kb593
+  - name: John Snider
+    netid: js3667
+  - name: Alexander Joos
+    netid: aaj46
+  - name: Eli Slavin
+    netid: ebs227
+
+# Your PM.
+pm:
+  name: Paul Fischer
+  netid: ptf34
+# Set to false if you don't want your gallery entry to be public.
+publish: true
+# Pithy title
+title: "Pacman"
+# OK if this is a Cornell Github link, but public gallery viewers won't be able to see it.
+git-repo: "https://github.coecis.cornell.edu/js3667/3110-project"
+# Replace the URL with your own demo video.
+demo-video-url: "TBD"
+# Write a short, attention-grabbing description of your project.
+desc: >
+  Our project is the classic Pacman game recreated using OCaml. The interface
+  allows users is to control the movement of the Pacman character around a 
+  maze with ghosts chasing the character. The Pacman character moves around 
+  the maze trying to collect the coins without being caught by a ghost.
+
+  The Pacman has three lives represented as hearts on the screen and each
+  time the Pacman character is caught by a ghost one of the hearts is broken.
+  Once all three hearts are broken the game ends.
