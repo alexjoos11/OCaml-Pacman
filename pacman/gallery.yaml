@@ -21,7 +21,7 @@ title: "Pacman"
 # OK if this is a Cornell Github link, but public gallery viewers won't be able to see it.
 git-repo: "https://github.coecis.cornell.edu/js3667/3110-project"
 # Replace the URL with your own demo video.
-demo-video-url: "TBD"
+demo-video-url: "https://youtu.be/Egx1H8Ru59M"
 # Write a short, attention-grabbing description of your project.
 desc: >
   Our project is the classic Pacman game recreated using OCaml. The interface
