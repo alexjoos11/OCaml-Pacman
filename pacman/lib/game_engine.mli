@@ -34,6 +34,10 @@ module Make : functor
       Pac-Man, all ghosts, scoring information, remaining lives, and the current
       high-level game state. *)
 
+  val start : world -> world
+  (** [start w] transitions the world from [Intro] into [Playing]. Calling
+      [start] in any other state returns [w] unchanged. *)
+
   val initial_world : Maze.t -> Pacman.t -> Ghost.t list -> world
   (** [initial_world maze pac ghosts] constructs a new game world with:
       - the given maze,

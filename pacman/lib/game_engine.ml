@@ -39,6 +39,11 @@ struct
       state = Intro;
     }
 
+  let start w =
+    match w.state with
+    | Intro -> { w with state = Playing }
+    | _ -> w
+
   (** [try_move maze (x,y) (nx,ny) move_fn entity] attempts to move an entity
       from [(x,y)] to [(nx,ny)]. If the target tile is a wall, the entity
       remains in place; otherwise [move_fn] applies the movement.
