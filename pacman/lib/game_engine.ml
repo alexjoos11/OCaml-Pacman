@@ -56,51 +56,62 @@ struct
 
       Returns a new world with updated positions and state. *)
   let update_playing w =
-    (* ---- Pac-Man movement ---- *)
-    let px, py = Pacman.position w.pac in
-    let desired_px, desired_py = Pacman.next_position w.pac in
-    let pac' =
-      try_move w.maze (px, py) (desired_px, desired_py) Pacman.move_to w.pac
+    (* ---- Early collision check BEFORE movement ---- *)
+    let pac_pos = Pacman.position w.pac in
+    let pac_dead_start =
+      List.exists (fun g -> pac_pos = Ghost.position g) w.ghosts
     in
+    if pac_dead_start then
+      (* Pac-Man starts on a ghost: immediate death, no movement or pellet
+         logic *)
+      { w with state = PacDead }
+    else
+      (* ---- Pac-Man movement ---- *)
+      let px, py = pac_pos in
+      let desired_px, desired_py = Pacman.next_position w.pac in
+      let pac' =
+        try_move w.maze (px, py) (desired_px, desired_py) Pacman.move_to w.pac
+      in
 
-    (* ---- Ghost movement ---- *)
-    let ghosts' =
-      List.map
-        (fun g ->
-          let gx, gy = Ghost.position g in
-          let dx, dy = Ghost.next_position g in
-          try_move w.maze (gx, gy) (dx, dy) Ghost.move_to g)
-        w.ghosts
-    in
+      (* ---- Ghost movement ---- *)
+      let ghosts' =
+        List.map
+          (fun g ->
+            let gx, gy = Ghost.position g in
+            let dx, dy = Ghost.next_position g in
+            try_move w.maze (gx, gy) (dx, dy) Ghost.move_to g)
+          w.ghosts
+      in
 
-    (* ---- Pellet Eating ---- *)
-    let px', py' = Pacman.position pac' in
-    let maze', score' =
-      if Maze.pellet_at w.maze px' py' then
-        (Maze.eat_pellet w.maze px' py', w.score + Constants.pellet_score)
-      else (w.maze, w.score)
-    in
+      (* ---- Pellet Eating ---- *)
+      let px', py' = Pacman.position pac' in
+      let maze', score' =
+        if Maze.pellet_at w.maze px' py' then
+          (Maze.eat_pellet w.maze px' py', w.score + Constants.pellet_score)
+        else (w.maze, w.score)
+      in
 
-    (* ---- Level Complete? ---- *)
-    let state_after_pellets =
-      if Maze.pellets_remaining maze' = 0 then LevelComplete else Playing
-    in
+      (* ---- Level Complete? ---- *)
+      let state_after_pellets =
+        if Maze.pellets_remaining maze' = 0 then LevelComplete else Playing
+      in
 
-    (* ---- Death Check ---- *)
-    let pac_dead =
-      List.exists (fun g -> Pacman.position pac' = Ghost.position g) ghosts'
-    in
-    let final_state = if pac_dead then PacDead else state_after_pellets in
+      (* ---- Death Check AFTER movement ---- *)
+      let pac_dead_after =
+        List.exists (fun g -> Pacman.position pac' = Ghost.position g) ghosts'
+      in
+      let final_state =
+        if pac_dead_after then PacDead else state_after_pellets
+      in
 
-    (* Construct updated world. *)
-    {
-      w with
-      pac = pac';
-      ghosts = ghosts';
-      maze = maze';
-      score = score';
-      state = final_state;
-    }
+      {
+        w with
+        pac = pac';
+        ghosts = ghosts';
+        maze = maze';
+        score = score';
+        state = final_state;
+      }
 
   (** [update_world w] advances the world by one frame, behaving differently
       depending on the global game state:

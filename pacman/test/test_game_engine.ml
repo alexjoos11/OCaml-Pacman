@@ -31,7 +31,6 @@ module StubPacman : PACMAN = struct
   let set_direction t d = { t with dir = d }
   let position t = (t.x, t.y)
 
-  (* Pac-Man wants to move right each time *)
   let next_position t =
     match t.dir with
     | Up -> (t.x, t.y - 1)
