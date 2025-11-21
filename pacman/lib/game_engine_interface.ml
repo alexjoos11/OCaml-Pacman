@@ -1,18 +1,38 @@
-(** Maze interface — no dependence on Pacman or Ghost *)
+(** This file defines the module types required by the game engine functor.
+
+    The engine is written as a functor so that it does not depend on any
+    particular implementation of mazes, Pac-Man state, ghost movement, or game
+    constants. Instead, the engine only relies on the *interfaces* described
+    here.
+
+    Each module type specifies the operations the engine needs, without exposing
+    how the underlying data is represented. This achieves two goals:
+
+    1. **Abstraction:** The engine does not know or assume how mazes, Pac-Man,
+    or ghosts store their internal fields. Their types are abstract, so
+    implementations can change freely without modifying the engine.
+
+    2. **Modularity and Testability:** Because the engine depends only on module
+    types, different implementations can be plugged in:
+    - a real maze for the actual game,
+    - a simple stub maze for unit testing,
+    - different ghost movement rules,
+    - different starting conditions or constants.
+
+    This structure also allows unit tests to provide minimal stub modules (e.g.,
+    a maze represented as [unit]) while letting the engine behave normally.
+
+    By defining these module types in one place, the game engine functor can
+    remain completely generic, reusable, and decoupled from any particular game
+    implementation. *)
+
 module type MAZE = sig
   type t
 
   val is_wall : t -> int -> int -> bool
-  (** True if there's a wall at (x,y) *)
-
   val pellet_at : t -> int -> int -> bool
-  (** True if a pellet exists at (x,y) *)
-
   val eat_pellet : t -> int -> int -> t
-  (** Remove pellet from tile, return new maze *)
-
   val pellets_remaining : t -> int
-  (** Number of pellets left *)
 end
 
 module type PACMAN = sig
@@ -25,18 +45,10 @@ module type PACMAN = sig
     | Right
 
   val create : int -> int -> t
-
   val set_direction : t -> direction -> t
-  (** Set desired movement direction *)
-
   val position : t -> int * int
-  (** Current position *)
-
   val next_position : t -> int * int
-  (** The tile Pac-Man *wants* to move to next *)
-
   val move_to : t -> int -> int -> t
-  (** Force Pac-Man to move to (x,y). Used by the engine if legal. *)
 end
 
 module type GHOST = sig
@@ -44,15 +56,10 @@ module type GHOST = sig
 
   val create : int -> int -> t
   val position : t -> int * int
-
   val next_position : t -> int * int
-  (** Compute the tile the ghost *wants* to move to *)
-
   val move_to : t -> int -> int -> t
-  (** Force ghost to move to a tile *)
 end
 
-(** Game constants *)
 module type CONSTANTS = sig
   val pacman_start_pos : int * int
   val ghost_start_positions : (int * int) list

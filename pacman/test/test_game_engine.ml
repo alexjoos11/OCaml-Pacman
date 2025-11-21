@@ -11,7 +11,7 @@ module StubMaze = struct
   let is_wall _ _ _ = false
   let pellet_at _ _ _ = false
   let eat_pellet m _ _ = m
-  let pellets_remaining _ = 1 (* prevent LevelComplete *)
+  let pellets_remaining _ = 1
 end
 
 module StubPacman : PACMAN = struct
@@ -66,10 +66,6 @@ end
 (* Instantiate the engine functor *)
 module Engine =
   Paclib.Game_engine.Make (StubMaze) (StubPacman) (StubGhost) (StubConstants)
-
-(* ------------------------------------------------------------- *)
-(*  Helper to build a world                                      *)
-(* ------------------------------------------------------------- *)
 
 let make_world () =
   let pac = StubPacman.create 5 5 in

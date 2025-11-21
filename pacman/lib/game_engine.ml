@@ -6,9 +6,6 @@ module Make
     (Ghost : GHOST)
     (Constants : CONSTANTS) =
 struct
-  (* -------------------------------- *)
-  (*          Game State Type         *)
-  (* -------------------------------- *)
   (** High-level states that describe the game's current phase. These states
       determine how [update_world] behaves. *)
   type game_state =
@@ -17,10 +14,6 @@ struct
     | PacDead
     | LevelComplete
     | GameOver
-
-  (* -------------------------------- *)
-  (*            World Type            *)
-  (* -------------------------------- *)
 
   type world = {
     maze : Maze.t;  (** Current maze layout and pellet state. *)
@@ -32,10 +25,6 @@ struct
   }
   (** A complete snapshot of the game at a single moment in time. The world is
       immutable: each update produces a new world value. *)
-
-  (* -------------------------------- *)
-  (*         Initial World            *)
-  (* -------------------------------- *)
 
   (** Construct the starting world given an initial maze, Pac-Man, and a list of
       ghosts. Score is set to 0 and lives come from [Constants.starting_lives].
@@ -50,10 +39,6 @@ struct
       state = Intro;
     }
 
-  (* -------------------------------- *)
-  (*        Movement Helper           *)
-  (* -------------------------------- *)
-
   (** [try_move maze (x,y) (nx,ny) move_fn entity] attempts to move an entity
       from [(x,y)] to [(nx,ny)]. If the target tile is a wall, the entity
       remains in place; otherwise [move_fn] applies the movement.
@@ -62,10 +47,6 @@ struct
   *)
   let try_move maze (_x, _y) (nx, ny) move_fn entity =
     if Maze.is_wall maze nx ny then entity else move_fn entity nx ny
-
-  (* -------------------------------- *)
-  (*           Update Playing         *)
-  (* -------------------------------- *)
 
   (** Performs a single simulation step of active gameplay:
       - Pac-Man attempts to move one tile in his current direction.
@@ -120,10 +101,6 @@ struct
       score = score';
       state = final_state;
     }
-
-  (* -------------------------------- *)
-  (*         Top-Level Update         *)
-  (* -------------------------------- *)
 
   (** [update_world w] advances the world by one frame, behaving differently
       depending on the global game state:

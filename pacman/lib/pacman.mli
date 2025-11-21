@@ -2,7 +2,7 @@ type direction =
   | Up
   | Down
   | Left
-  | Right  (** Cardinal movement directions for Pac-Man. *)
+  | Right
 
 type t
 (** Abstract Pac-Man state. This type hides the internal representation of
