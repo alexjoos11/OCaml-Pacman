@@ -4,5 +4,6 @@ type t = {
 }
 
 let create x y = { x; y }
-let update t ~maze:_ ~pac:_ = t
-let position t = (t.x, t.y)
+let position g = (g.x, g.y)
+let next_position g = (g.x, g.y)
+let move_to g nx ny = g

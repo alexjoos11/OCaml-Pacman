@@ -1,12 +1,24 @@
+type direction =
+  | Up
+  | Down
+  | Left
+  | Right
+
 type t = {
   x : int;
   y : int;
-  powered : bool;
+  dir : direction;
 }
 
-let create x y = { x; y; powered = false }
+let create x y = { x; y; dir = Right } (* default direction *)
+let set_direction p d = { p with dir = d }
+let position p = (p.x, p.y)
 
-(* Stub just returns same pacman *)
-let update t ~maze:_ = t
-let position t = (t.x, t.y)
-let powered t = t.powered
+let next_position p =
+  match p.dir with
+  | Up -> (p.x, p.y - 1)
+  | Down -> (p.x, p.y + 1)
+  | Left -> (p.x - 1, p.y)
+  | Right -> (p.x + 1, p.y)
+
+let move_to p nx ny = { p with x = nx; y = ny }

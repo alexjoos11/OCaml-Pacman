@@ -1,7 +1,13 @@
-type t = { dummy : int (* replace later *) }
+type t = unit
 
-let load _ = { dummy = 0 }
 let is_wall _ _ _ = false
+(* No walls anywhere in the stub *)
+
 let pellet_at _ _ _ = false
-let eat_pellet t _ _ = t
-let pellets_remaining _ = 0
+(* No pellets *)
+
+let eat_pellet m _ _ = m
+(* Maze never changes *)
+
+let pellets_remaining _ = 1
+(* Pretend there is always 1 pellet so level never ends *)
