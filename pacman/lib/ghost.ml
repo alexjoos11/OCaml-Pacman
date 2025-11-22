@@ -1,3 +1,9 @@
+type direction =
+  | Up
+  | Down
+  | Left
+  | Right
+
 type t = {
   x : int;
   y : int;

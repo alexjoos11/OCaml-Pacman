@@ -1,3 +1,6 @@
+(* the direction of the pacman*)
+type direction
+
 type t
 (** Abstract ghost state. This type represents a single ghost’s position and any
     internal state needed for its movement behavior. The internal representation
@@ -27,3 +30,12 @@ val move_to : t -> int -> int -> t
     engine calls this only after determining that the ghost’s intended move is
     legal. Ghosts themselves do not perform wall checks or decide if movement is
     allowed. *)
+
+val follow : t -> direction -> t
+(*for any ghost that will follow the pacman character, this function takes in
+  the current direction of the pacman and determines its movement thusly. The
+  ghost(s) will be moving with a constant speed after starting a specified [x]
+  number of pixels behind the pacman. If the pacman is moving straight, this
+  function tells the ghost to do the same. However, if the pacman turns, the
+  ghost will know which direction to turn in [initial displacement]/[speed]
+  seconds*)

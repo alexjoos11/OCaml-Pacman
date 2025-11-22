@@ -10,7 +10,7 @@ type t = {
   dir : direction;
 }
 
-let create x y = { x; y; dir = Right } (* default direction *)
+let create x y = { x; y; dir = Right }
 let set_direction p d = { p with dir = d }
 let position p = (p.x, p.y)
 
