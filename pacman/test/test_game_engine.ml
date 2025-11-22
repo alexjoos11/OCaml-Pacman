@@ -1,5 +1,6 @@
 open OUnit2
 open Paclib.Game_engine_interface
+open Paclib.Game_state
 
 (* ------------------------------------------------------------- *)
 (*  STUB MODULES                                                 *)
@@ -81,12 +82,12 @@ let test_intro_no_update _ =
 let test_start_enters_playing _ =
   let w = mk_world () in
   let started = Engine.start w in
-  assert_equal Engine.Playing started.state
+  assert_equal Playing started.state
 
 let test_playing_no_pellets_no_collision _ =
   let w = Engine.start (mk_world ()) in
   let w' = Engine.update_world w in
-  assert_equal Engine.Playing w'.state;
+  assert_equal Playing w'.state;
   assert_equal w.score w'.score
 
 let test_pac_dead_transition _ =
@@ -95,13 +96,13 @@ let test_pac_dead_transition _ =
   let ghost = StubGhost.create 5 5 in
   let w = Engine.initial_world maze pac [ ghost ] |> Engine.start in
   let w' = Engine.update_world w in
-  assert_equal Engine.PacDead w'.state
+  assert_equal PacDead w'.state
 
 let test_game_over_when_no_lives_left _ =
   let w = mk_world () in
   let w = { w with state = PacDead; lives = 1 } in
   let w' = Engine.update_world w in
-  assert_equal Engine.GameOver w'.state
+  assert_equal GameOver w'.state
 
 (* ------------------------------------------------------------- *)
 (*  ADDITIONAL TESTS                                             *)
@@ -171,7 +172,7 @@ let test_level_complete _ =
   let ghost = StubGhost.create 10 10 in
   let w = EngineEmpty.initial_world () pac [ ghost ] |> EngineEmpty.start in
   let w' = EngineEmpty.update_world w in
-  assert_equal EngineEmpty.LevelComplete w'.state
+  assert_equal LevelComplete w'.state
 
 (* Ghost moves into Pac-Man ------------------------------------- *)
 
@@ -195,7 +196,7 @@ let test_pac_dead_after_movement _ =
   let ghost = MovingGhost.create 5 6 in
   let w = EngineMG.initial_world () pac [ ghost ] |> EngineMG.start in
   let w' = EngineMG.update_world w in
-  assert_equal EngineMG.PacDead w'.state
+  assert_equal PacDead w'.state
 
 (* Intro/GameOver stable ---------------------------------------- *)
 

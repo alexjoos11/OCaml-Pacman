@@ -1,5 +1,8 @@
 type t = unit
 
+let create () = ()
+let width _ = 28
+let height _ = 31
 let is_wall _ _ _ = false
 (* No walls anywhere in the stub *)
 

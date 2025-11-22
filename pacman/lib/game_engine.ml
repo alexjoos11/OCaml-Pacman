@@ -1,4 +1,5 @@
 open Game_engine_interface
+open Game_state
 
 module Make
     (Maze : MAZE)
@@ -6,15 +7,6 @@ module Make
     (Ghost : GHOST)
     (Constants : CONSTANTS) =
 struct
-  (** High-level states that describe the game's current phase. These states
-      determine how [update_world] behaves. *)
-  type game_state =
-    | Intro
-    | Playing
-    | PacDead
-    | LevelComplete
-    | GameOver
-
   type world = {
     maze : Maze.t;  (** Current maze layout and pellet state. *)
     pac : Pacman.t;  (** Pac-Man's current position and direction. *)

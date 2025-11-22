@@ -38,14 +38,7 @@ end
 module type PACMAN = sig
   type t
 
-  type direction =
-    | Up
-    | Down
-    | Left
-    | Right
-
   val create : int -> int -> t
-  val set_direction : t -> direction -> t
   val position : t -> int * int
   val next_position : t -> int * int
   val move_to : t -> int -> int -> t

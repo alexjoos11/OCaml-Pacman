@@ -1,4 +1,5 @@
 open Game_engine_interface
+open Game_state
 
 module Make : functor
   (Maze : MAZE)
@@ -6,19 +7,6 @@ module Make : functor
   (Ghost : GHOST)
   (Constants : CONSTANTS)
   -> sig
-  (** The various high-level states the game can be in. *)
-  type game_state =
-    | Intro  (** Initial state before the player begins. *)
-    | Playing
-        (** Normal gameplay: Pac-Man and ghosts move, pellets can be eaten. *)
-    | PacDead
-        (** Pac-Man has collided with a ghost and will lose a life or end the
-            game. *)
-    | LevelComplete
-        (** All pellets have been eaten; the level transitions to a new layout.
-        *)
-    | GameOver  (** No lives remain; the game ends. *)
-
   type world = {
     maze : Maze.t;
         (** Representation of the maze, including walls and pellets. *)

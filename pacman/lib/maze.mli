@@ -3,6 +3,16 @@ type t
     including walls, pellets, and any other level-specific information. Its
     internal representation is hidden from the engine. *)
 
+val create : unit -> t
+(** [create ()] constructs an initial maze value for the level. Its internal
+    structure is entirely up to the implementation. *)
+
+val width : t -> int
+(** Width of the maze (in tiles). *)
+
+val height : t -> int
+(** Height of the maze (in tiles). *)
+
 val is_wall : t -> int -> int -> bool
 (** [is_wall maze x y] is [true] if the tile at coordinates [(x, y)] contains a
     wall and cannot be entered by Pac-Man or ghosts. Returns [false] if the tile
