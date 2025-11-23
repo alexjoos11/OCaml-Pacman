@@ -1,105 +1,80 @@
-open Tsdl
+open Raylib
 open Paclib
+module Engine = Game_engine.Make (Maze) (Pacman) (Ghost) (Constants)
 
-let window_width = 800
-let window_height = 600
-let ball_radius = 20
-let move = 3
-
-(* keeps pacman in window*)
-let clamp v min_v max_v =
-  if v < min_v then min_v else if v > max_v then max_v else v
-
-let tile_size = 20
-let max_tile_x = (window_width / tile_size) - 1
-let max_tile_y = (window_height / tile_size) - 1
-
-(*changes pacman location into pixels*)
-let to_pixel (tx, ty) =
-  ((tx * tile_size) + (tile_size / 2), (ty * tile_size) + (tile_size / 2))
-
-(* draws pacman character*)
-let draw_circle renderer cx cy r =
-  let r2 = r * r in
-  for dx = -r to r do
-    for dy = -r to r do
-      if (dx * dx) + (dy * dy) <= r2 then
-        ignore (Sdl.render_draw_point renderer (cx + dx) (cy + dy))
-    done
-  done
+let width = Constants.window_width
+let height = Constants.window_height
+let fps = Constants.fps
 
 let () =
-  match Sdl.init Sdl.Init.video with
-  | Error (`Msg e) -> failwith e
-  | Ok () -> (
-      match
-        Sdl.create_window "PACMAN" ~x:Sdl.Window.pos_centered
-          ~y:Sdl.Window.pos_centered ~w:window_width ~h:window_height
-          Sdl.Window.windowed
-      with
-      | Error (`Msg e) -> failwith e
-      | Ok window -> (
-          match
-            Sdl.create_renderer ~index:(-1)
-              ~flags:Sdl.Renderer.(accelerated + presentvsync)
-              window
-          with
-          | Error (`Msg e) -> failwith e
-          | Ok renderer ->
-              (*create pacman*)
-              let pac = ref (Pacman.create 10 10) in
+  (* -------------------------------------------- *)
+  (* Initialize Window                            *)
+  (* -------------------------------------------- *)
+  init_window width height "Pac-Man OCaml";
+  set_target_fps fps;
 
-              let event = Sdl.Event.create () in
-              let running = ref true in
+  (* -------------------------------------------- *)
+  (* Create Initial Game Objects                  *)
+  (* -------------------------------------------- *)
+  let maze = Maze.create () in
+  let pac = Pacman.create 5 5 in
+  let ghosts = [ Ghost.create 8 8 ] in
 
-              while !running do
-                while Sdl.poll_event (Some event) do
-                  match Sdl.Event.(enum (get event typ)) with
-                  | `Quit -> running := false
-                  | `Key_down -> (
-                      let press =
-                        Sdl.Event.get event Sdl.Event.keyboard_scancode
-                      in
-                      match Sdl.Scancode.enum press with
-                      (*reminder: when ghosts are implemented, add function to
-                        send acman direction*)
-                      | `Up ->
-                          pac := Pacman.set_direction !pac Pacman.Up;
-                          let nx, ny = Pacman.next_position !pac in
-                          let nx = clamp nx 0 max_tile_x in
-                          let ny = clamp ny 0 max_tile_y in
-                          pac := Pacman.move_to !pac nx ny
-                      | `Down ->
-                          pac := Pacman.set_direction !pac Pacman.Down;
-                          let nx, ny = Pacman.next_position !pac in
-                          let nx = clamp nx 0 max_tile_x in
-                          let ny = clamp ny 0 max_tile_y in
-                          pac := Pacman.move_to !pac nx ny
-                      | `Right ->
-                          pac := Pacman.set_direction !pac Pacman.Right;
-                          let nx, ny = Pacman.next_position !pac in
-                          let nx = clamp nx 0 max_tile_x in
-                          let ny = clamp ny 0 max_tile_y in
-                          pac := Pacman.move_to !pac nx ny
-                      | `Left ->
-                          pac := Pacman.set_direction !pac Pacman.Left;
-                          let nx, ny = Pacman.next_position !pac in
-                          let nx = clamp nx 0 max_tile_x in
-                          let ny = clamp ny 0 max_tile_y in
-                          pac := Pacman.move_to !pac nx ny
-                      | _ -> ())
-                  | _ -> ()
-                done;
+  (* Start the game immediately. Otherwise update_world does nothing because the
+     state stays Intro. *)
+  let world = ref (Engine.initial_world maze pac ghosts |> Engine.start) in
 
-                (* erases old screen with new black background*)
-                Sdl.set_render_draw_color renderer 0 0 0 255 |> ignore;
-                Sdl.render_clear renderer |> ignore;
+  (* -------------------------------------------- *)
+  (* Game Loop                                    *)
+  (* -------------------------------------------- *)
+  while not (window_should_close ()) do
+    (* -------------------------------------------- *)
+    (* 1. Handle Input                              *)
+    (* -------------------------------------------- *)
+    let dir_opt =
+      if is_key_down Key.Up then Some Pacman.Up
+      else if is_key_down Key.Down then Some Pacman.Down
+      else if is_key_down Key.Left then Some Pacman.Left
+      else if is_key_down Key.Right then Some Pacman.Right
+      else None
+    in
 
-                let px, py = to_pixel (Pacman.position !pac) in
-                (*pacman's new position*)
-                Sdl.set_render_draw_color renderer 255 255 0 255 |> ignore;
-                draw_circle renderer px py ball_radius;
+    (* Apply direction change to pac *)
+    let updated_world =
+      match dir_opt with
+      | Some d -> { !world with pac = Pacman.set_direction !world.pac d }
+      | None -> !world
+    in
 
-                (*draw new circle*)
-                Sdl.render_present renderer
-              done))
+    (* -------------------------------------------- *)
+    (* 2. Update World via Engine                   *)
+    (* -------------------------------------------- *)
+    let new_world = Engine.update_world updated_world in
+    world := new_world;
+
+    (* -------------------------------------------- *)
+    (* 3. Render                                    *)
+    (* -------------------------------------------- *)
+    begin_drawing ();
+    clear_background Color.black;
+
+    let view : Renderer.world_view =
+      {
+        maze = new_world.maze;
+        pac = new_world.pac;
+        ghosts = new_world.ghosts;
+        score = new_world.score;
+        lives = new_world.lives;
+        state = new_world.state;
+      }
+    in
+
+    Renderer.draw view;
+
+    end_drawing ()
+  done;
+
+  (* -------------------------------------------- *)
+  (* Cleanup                                       *)
+  (* -------------------------------------------- *)
+  close_window ()

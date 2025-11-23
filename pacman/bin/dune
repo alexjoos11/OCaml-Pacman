@@ -1,5 +1,4 @@
 (executable
  (public_name pacman)
  (name main)
- (modules main)
- (libraries paclib tsdl))
+ (libraries paclib tsdl raylib))

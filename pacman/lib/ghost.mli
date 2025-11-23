@@ -14,16 +14,9 @@ val create : int -> int -> t
 val position : t -> int * int
 (** [position g] returns the ghost’s current tile coordinates as [(x, y)]. *)
 
-val next_position : t -> int * int
+val next_position : t -> pac_pos:int * int -> int * int
 (** [next_position g] computes the tile [(nx, ny)] that the ghost intends to
-    move to *before* the engine checks walls or enforces legality.
-
-    The ghost's intended movement may be:
-    - fixed (e.g., always moving right),
-    - random,
-    - or based on any simple movement rule chosen by the implementation.
-
-    This function does *not* update the ghost’s actual position. *)
+    move to, based on Pac-Man's location [pac_pos]*)
 
 val move_to : t -> int -> int -> t
 (** [move_to g x y] returns a new ghost state positioned at tile [(x, y)]. The

@@ -33,19 +33,14 @@ module type MAZE = sig
   val pellet_at : t -> int -> int -> bool
   val eat_pellet : t -> int -> int -> t
   val pellets_remaining : t -> int
+  val width : t -> int
+  val height : t -> int
 end
 
 module type PACMAN = sig
   type t
 
-  type direction =
-    | Up
-    | Down
-    | Left
-    | Right
-
   val create : int -> int -> t
-  val set_direction : t -> direction -> t
   val position : t -> int * int
   val next_position : t -> int * int
   val move_to : t -> int -> int -> t
@@ -56,7 +51,7 @@ module type GHOST = sig
 
   val create : int -> int -> t
   val position : t -> int * int
-  val next_position : t -> int * int
+  val next_position : t -> pac_pos:int * int -> int * int
   val move_to : t -> int -> int -> t
 end
 
