@@ -36,6 +36,10 @@ struct
     | Intro -> { w with state = Playing }
     | _ -> w
 
+  (*helper function to determine if entity is trying to leave window*)
+  let bound nx ny =
+    if -1 < nx && nx < 40 && -1 < ny && ny < 30 then true else false
+
   (** [try_move maze (x,y) (nx,ny) move_fn entity] attempts to move an entity
       from [(x,y)] to [(nx,ny)]. If the target tile is a wall, the entity
       remains in place; otherwise [move_fn] applies the movement.
@@ -43,7 +47,8 @@ struct
       Pac-Man and ghosts both use this helper via their own [move_to] functions.
   *)
   let try_move maze (_x, _y) (nx, ny) move_fn entity =
-    if Maze.is_wall maze nx ny then entity else move_fn entity nx ny
+    if Maze.is_wall maze nx ny || not (bound nx ny) then entity
+    else move_fn entity nx ny
 
   (** Performs a single simulation step of active gameplay:
       - Pac-Man attempts to move one tile in his current direction.
