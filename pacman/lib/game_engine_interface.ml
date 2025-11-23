@@ -51,7 +51,7 @@ module type GHOST = sig
 
   val create : int -> int -> t
   val position : t -> int * int
-  val next_position : t -> int * int
+  val next_position : t -> pac_pos:int * int -> int * int
   val move_to : t -> int -> int -> t
 end
 

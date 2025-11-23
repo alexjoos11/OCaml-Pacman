@@ -52,8 +52,8 @@ module StubGhost : GHOST = struct
 
   let create x y = { x; y }
   let position g = (g.x, g.y)
-  let next_position g = (g.x, g.y)
-  let move_to g _ _ = g
+  let next_position g ~pac_pos:_ = (g.x, g.y)
+  let move_to g nx ny = { x = nx; y = ny }
 end
 
 module StubConstants = struct
@@ -192,7 +192,7 @@ module MovingGhost = struct
 
   let create x y = { x; y }
   let position g = (g.x, g.y)
-  let next_position _ = (5, 5)
+  let next_position _ ~pac_pos = pac_pos
   let move_to g nx ny = { x = nx; y = ny }
 end
 

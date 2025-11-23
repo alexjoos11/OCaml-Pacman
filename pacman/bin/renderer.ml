@@ -1,7 +1,7 @@
 open Raylib
 open Paclib
 
-let tile_size = 20
+let tile_size = Constants.tile_size
 
 type world_view = {
   maze : Maze.t;

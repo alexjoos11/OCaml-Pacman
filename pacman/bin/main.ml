@@ -2,9 +2,9 @@ open Raylib
 open Paclib
 module Engine = Game_engine.Make (Maze) (Pacman) (Ghost) (Constants)
 
-let width = 800
-let height = 600
-let fps = 60
+let width = Constants.window_width
+let height = Constants.window_height
+let fps = Constants.fps
 
 let () =
   (* -------------------------------------------- *)

@@ -83,11 +83,13 @@ struct
       in
 
       (* ---- Ghost movement ---- *)
+      (* ---- Ghost movement ---- *)
       let ghosts' =
         List.map
           (fun g ->
             let gx, gy = Ghost.position g in
-            let dx, dy = Ghost.next_position g in
+            let pac_px, pac_py = Pacman.position pac' in
+            let dx, dy = Ghost.next_position g ~pac_pos:(pac_px, pac_py) in
             try_move w.maze (gx, gy) (dx, dy) Ghost.move_to g)
           w.ghosts
       in

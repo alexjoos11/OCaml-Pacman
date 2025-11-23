@@ -1,8 +1,8 @@
 type t = unit
 
 let create () = ()
-let width _ = 28
-let height _ = 31
+let width _ = Constants.maze_width
+let height _ = Constants.maze_height
 let is_wall _ _ _ = false
 (* No walls anywhere in the stub *)
 
