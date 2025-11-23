@@ -48,14 +48,8 @@ struct
       This helper is used for both Pac-Man and ghosts to ensure consistent rules
       for movement across the maze. *)
 
-  let try_move maze (_x, _y) (nx, ny) move_fn entity =
-    if
-      nx < 0 || ny < 0
-      || nx >= Maze.width maze
-      || ny >= Maze.height maze
-      || Maze.is_wall maze nx ny
-    then entity
-    else move_fn entity nx ny
+  let try_move maze _pos (nx, ny) move_fn entity =
+    if Maze.is_wall maze nx ny then entity else move_fn entity nx ny
 
   (** Performs a single simulation step of active gameplay:
       - Pac-Man attempts to move one tile in his current direction.
@@ -104,7 +98,7 @@ struct
 
       (* ---- Level Complete? ---- *)
       let state_after_pellets =
-        if Maze.pellets_remaining maze' = 0 then LevelComplete else Playing
+        if not (Maze.pellets_exist maze') then LevelComplete else Playing
       in
 
       (* ---- Death Check AFTER movement ---- *)
@@ -124,22 +118,46 @@ struct
         state = final_state;
       }
 
-  (** [update_world w] advances the world by one frame, behaving differently
-      depending on the global game state:
+  (** [update_world w] advances the game state by one frame.
 
-      - [Intro] or [GameOver]: No updates; world remains unchanged.
-      - [Playing]: Standard simulation step using [update_playing].
-      - [PacDead]: Either decrement a life and respawn, or transition to
+      The behavior depends on the current global game state:
+
+      - [Intro] — No simulation occurs. The world is frozen until the user
+        starts the game (handled externally via [start]).
+
+      - [GameOver] — The game has ended and no further updates occur. The world
+        is frozen until restarted.
+
+      - [LevelComplete] — All pellets have been eaten. For a single-level game,
+        the world remains frozen; the renderer may display a "You Win!" screen.
+        No automatic respawn or reset occurs.
+
+      - [PacDead] — Pac-Man has collided with a ghost. If lives remain, Pac-Man
+        and the ghosts are respawned at their starting positions and the game
+        continues in [Playing]. If no lives remain, the game transitions to
         [GameOver].
-      - [LevelComplete]: Respawn entities and continue playing (future: load
-        next maze). *)
+
+      - [Playing] — A normal simulation step occurs (movement, collision checks,
+        pellet updates, scoring, and win/loss detection). *)
   let update_world w =
     match w.state with
-    | Intro -> w
-    | GameOver -> w
+    | Intro ->
+        (* The game hasn't started; freeze world. *)
+        w
+    | GameOver ->
+        (* Terminal state; no further updates. *)
+        w
+    | LevelComplete ->
+        (* Single-level game: freeze world on win. *)
+        w
     | PacDead ->
-        if w.lives <= 1 then { w with state = GameOver }
+        (* Pac-Man died. Check if any lives remain. *)
+        if w.lives <= 1 then
+          (* No lives left → transition to game over. *)
+          { w with state = GameOver }
         else
+          (* Respawn Pac-Man and ghosts, decrement life, and continue
+             playing. *)
           let px, py = Constants.pacman_start_pos in
           let ghosts =
             List.map
@@ -153,20 +171,7 @@ struct
             ghosts;
             state = Playing;
           }
-    | LevelComplete ->
-        let px, py = Constants.pacman_start_pos in
-        let ghosts =
-          List.map
-            (fun (gx, gy) -> Ghost.create gx gy)
-            Constants.ghost_start_positions
-        in
-        {
-          w with
-          (* Future extension: load next maze layout. *)
-          maze = w.maze;
-          pac = Pacman.create px py;
-          ghosts;
-          state = Playing;
-        }
-    | Playing -> update_playing w
+    | Playing ->
+        (* Main simulation step. *)
+        update_playing w
 end

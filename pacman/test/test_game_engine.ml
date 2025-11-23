@@ -12,9 +12,7 @@ module StubMaze = struct
   let is_wall _ _ _ = false
   let pellet_at _ _ _ = false
   let eat_pellet m _ _ = m
-  let pellets_remaining _ = 1
-  let width _ = 40
-  let height _ = 30
+  let pellets_exist _ = true
 end
 
 module StubPacman : PACMAN = struct
@@ -113,9 +111,7 @@ module WallMaze = struct
   let is_wall _ x y = (x, y) = (6, 5)
   let pellet_at _ _ _ = false
   let eat_pellet m _ _ = m
-  let pellets_remaining _ = 10
-  let width _ = 40
-  let height _ = 30
+  let pellets_exist _ = true
 end
 
 module EngineWall =
@@ -136,9 +132,7 @@ module PelletMaze = struct
   let is_wall _ _ _ = false
   let pellet_at _ x y = (x, y) = (6, 5)
   let eat_pellet m _ _ = m
-  let pellets_remaining _ = 10
-  let width _ = 40
-  let height _ = 30
+  let pellets_exist _ = true
 end
 
 module EnginePellet =
@@ -159,9 +153,7 @@ module EmptyMaze = struct
   let is_wall _ _ _ = false
   let pellet_at _ _ _ = false
   let eat_pellet m _ _ = m
-  let pellets_remaining _ = 0
-  let width _ = 40
-  let height _ = 30
+  let pellets_exist _ = false
 end
 
 module EngineEmpty =
