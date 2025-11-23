@@ -36,14 +36,26 @@ struct
     | Intro -> { w with state = Playing }
     | _ -> w
 
-  (** [try_move maze (x,y) (nx,ny) move_fn entity] attempts to move an entity
-      from [(x,y)] to [(nx,ny)]. If the target tile is a wall, the entity
-      remains in place; otherwise [move_fn] applies the movement.
+  (** [try_move maze (x,y) (nx,ny) move_fn entity] attempts to move [entity]
+      from its current tile [(x,y)] to the target tile [(nx,ny)].
 
-      Pac-Man and ghosts both use this helper via their own [move_to] functions.
-  *)
+      - If [(nx,ny)] is outside the maze bounds, the entity remains at [(x,y)].
+      - If [(nx,ny)] contains a wall according to [Maze.is_wall], the entity
+        remains at [(x,y)].
+      - Otherwise, [move_fn entity nx ny] is applied to produce the updated
+        entity.
+
+      This helper is used for both Pac-Man and ghosts to ensure consistent rules
+      for movement across the maze. *)
+
   let try_move maze (_x, _y) (nx, ny) move_fn entity =
-    if Maze.is_wall maze nx ny then entity else move_fn entity nx ny
+    if
+      nx < 0 || ny < 0
+      || nx >= Maze.width maze
+      || ny >= Maze.height maze
+      || Maze.is_wall maze nx ny
+    then entity
+    else move_fn entity nx ny
 
   (** Performs a single simulation step of active gameplay:
       - Pac-Man attempts to move one tile in his current direction.
