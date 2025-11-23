@@ -80,7 +80,7 @@ struct
         List.map
           (fun g ->
             let gx, gy = Ghost.position g in
-            let dx, dy = Ghost.next_position g in
+            let dx, dy = Ghost.next_position g ~pac_pos in
             try_move w.maze (gx, gy) (dx, dy) Ghost.move_to g)
           w.ghosts
       in
