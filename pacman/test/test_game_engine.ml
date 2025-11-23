@@ -72,10 +72,6 @@ let mk_world () =
   let ghost = StubGhost.create 10 10 in
   Engine.initial_world () pac [ ghost ]
 
-(* ------------------------------------------------------------- *)
-(*  BASIC TESTS                                                  *)
-(* ------------------------------------------------------------- *)
-
 let test_intro_no_update _ =
   let w = mk_world () in
   let w' = Engine.update_world w in
@@ -105,10 +101,6 @@ let test_game_over_when_no_lives_left _ =
   let w = { w with state = PacDead; lives = 1 } in
   let w' = Engine.update_world w in
   assert_equal GameOver w'.state
-
-(* ------------------------------------------------------------- *)
-(*  ADDITIONAL TESTS                                             *)
-(* ------------------------------------------------------------- *)
 
 let test_pacman_moves _ =
   let w = Engine.start (mk_world ()) in
