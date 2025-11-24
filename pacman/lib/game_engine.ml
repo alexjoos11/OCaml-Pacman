@@ -7,6 +7,8 @@ module Make
     (Ghost : GHOST)
     (Constants : CONSTANTS) =
 struct
+  module Movement = Movement.Make(Maze)(Pacman)(Ghost)(Constants)
+  
   type world = {
     maze : Maze.t;  (** Current maze layout and pellet state. *)
     pac : Pacman.t;  (** Pac-Man's current position and direction. *)
@@ -40,21 +42,6 @@ struct
     match w.state with
     | Intro -> { w with state = Playing }
     | _ -> w
-
-  (**[try_move maze (x,y) (nx,ny) move_fn entity] attempts to move [entity] from
-     its current tile [(x,y)] to the target tile [(nx,ny)].
-
-     - If [(nx,ny)] is outside the maze bounds, the entity remains at [(x,y)].
-     - If [(nx,ny)] contains a wall according to [Maze.is_wall], the entity
-       remains at [(x,y)].
-     - Otherwise, [move_fn entity nx ny] is applied to produce the updated
-       entity.
-
-     This helper is used for both Pac-Man and ghosts to ensure consistent rules
-     for movement across the maze. *)
-  let try_move maze _pos (nx, ny) move_fn entity =
-    if Maze.is_wall maze nx ny then entity else move_fn entity nx ny
-
   (** Helper: respawn Pac-Man and all ghosts after death.
 
       - Decrements lives.
@@ -104,22 +91,9 @@ struct
          another tile movement. *)
       { w with move_cooldown = w.move_cooldown - 1 }
     else
-      (* ---- Pac-Man movement ---- *)
-      let px, py = pac_pos in
-      let desired_px, desired_py = Pacman.next_position w.pac in
-      let pac' =
-        try_move w.maze (px, py) (desired_px, desired_py) Pacman.move_to w.pac
-      in
-
-      (* ---- Ghost movement ---- *)
+      let pac' = Movement.move_pacman w.maze w.pac in
       let ghosts' =
-        List.map
-          (fun g ->
-            let gx, gy = Ghost.position g in
-            let pac_px, pac_py = Pacman.position pac' in
-            let dx, dy = Ghost.next_position g ~pac_pos:(pac_px, pac_py) in
-            try_move w.maze (gx, gy) (dx, dy) Ghost.move_to g)
-          w.ghosts
+        List.map (fun g -> Movement.move_ghost w.maze g (Pacman.position pac')) w.ghosts
       in
 
       (* ---- Pellet Eating ---- *)
