@@ -7,8 +7,8 @@ module Make
     (Ghost : GHOST)
     (Constants : CONSTANTS) =
 struct
-  module Movement = Movement.Make(Maze)(Pacman)(Ghost)(Constants)
-  
+  module Movement = Movement.Make (Maze) (Pacman) (Ghost) (Constants)
+
   type world = {
     maze : Maze.t;  (** Current maze layout and pellet state. *)
     pac : Pacman.t;  (** Pac-Man's current position and direction. *)
@@ -42,6 +42,7 @@ struct
     match w.state with
     | Intro -> { w with state = Playing }
     | _ -> w
+
   (** Helper: respawn Pac-Man and all ghosts after death.
 
       - Decrements lives.
@@ -93,7 +94,9 @@ struct
     else
       let pac' = Movement.move_pacman w.maze w.pac in
       let ghosts' =
-        List.map (fun g -> Movement.move_ghost w.maze g (Pacman.position pac')) w.ghosts
+        List.map
+          (fun g -> Movement.move_ghost w.maze g (Pacman.position pac'))
+          w.ghosts
       in
 
       (* ---- Pellet Eating ---- *)
@@ -143,9 +146,8 @@ struct
       - [GameOver] — The game has ended and no further updates occur. The world
         is frozen until restarted.
 
-      - [LevelComplete] — All pellets have been eaten. For a single-level game,
-        the world remains frozen; the renderer may display a "You Win!" screen.
-        No automatic respawn or reset occurs.
+      - [LevelComplete] — All pellets have been eaten. The world is frozen until
+        the user restarts the game (handled externally).
 
       - [PacDead] — Pac-Man has collided with a ghost. A short freeze period
         occurs (controlled by [pacdead_timer]). When the timer expires:
