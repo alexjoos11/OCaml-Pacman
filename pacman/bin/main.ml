@@ -1,71 +1,105 @@
 open Raylib
 open Paclib
+
+(* Apply the game engine functor to our concrete implementations *)
 module Engine = Game_engine.Make (Maze) (Pacman) (Ghost) (Constants)
 
+(* Window and frame settings pulled from Constants *)
 let width = Constants.window_width
 let height = Constants.window_height
 let fps = Constants.fps
 
 let () =
-  (* -------------------------------------------- *)
-  (* Initialize Window                            *)
-  (* -------------------------------------------- *)
+  (* ========================================================== *)
+  (*  Window Initialization                                      *)
+  (* ========================================================== *)
   init_window width height "Pac-Man OCaml";
   set_target_fps fps;
 
-  (* -------------------------------------------- *)
-  (* Create Initial Game Objects                  *)
-  (* -------------------------------------------- *)
+  (* ========================================================== *)
+  (*  Create Initial Game State                                 *)
+  (* ========================================================== *)
+
+  (* Construct the maze (hardcoded layout) *)
   let maze = Maze.create () in
-  let pac = Pacman.create 5 5 in
-  let ghosts = [ Ghost.create 8 8 ] in
 
-  (* Start the game immediately. Otherwise update_world does nothing because the
-     state stays Intro. *)
-  let world = ref (Engine.initial_world maze pac ghosts |> Engine.start) in
+  (* Pac-Man spawn *)
+  let px, py = Constants.pacman_start_pos in
+  let pac = Pacman.create px py in
 
-  (* -------------------------------------------- *)
-  (* Game Loop                                    *)
-  (* -------------------------------------------- *)
+  (* Spawn all ghosts listed in Constants *)
+  let ghosts =
+    List.map
+      (fun (gx, gy) -> Ghost.create gx gy)
+      Constants.ghost_start_positions
+  in
+
+  (* The game starts in the Intro state, so we do NOT call Engine.start yet. *)
+  let world = ref (Engine.initial_world maze pac ghosts) in
+
+  (* ========================================================== *)
+  (*  Main Game Loop                                            *)
+  (* ========================================================== *)
   while not (window_should_close ()) do
-    (* -------------------------------------------- *)
-    (* 1. Handle Input                              *)
-    (* -------------------------------------------- *)
-    let dir_opt =
-      if is_key_down Key.Up then Some Pacman.Up
-      else if is_key_down Key.Down then Some Pacman.Down
-      else if is_key_down Key.Left then Some Pacman.Left
-      else if is_key_down Key.Right then Some Pacman.Right
-      else None
+    (* ---------------------------------------------------------- *)
+    (* 1. Handle Player Input                                     *)
+    (* ---------------------------------------------------------- *)
+
+    (* World after processing keyboard input *)
+    let world_after_input =
+      match !world.state with
+      | Game_state.Intro ->
+          (* Press SPACE to begin the game *)
+          if is_key_pressed Key.Space then Engine.start !world else !world
+      | Game_state.Playing -> (
+          (* Arrow keys adjust Pac-Man’s facing direction *)
+          let dir_opt =
+            if is_key_down Key.Up then Some Pacman.Up
+            else if is_key_down Key.Down then Some Pacman.Down
+            else if is_key_down Key.Left then Some Pacman.Left
+            else if is_key_down Key.Right then Some Pacman.Right
+            else None
+          in
+
+          match dir_opt with
+          | Some d ->
+              (* Update Pac-Man’s direction (does NOT move him) *)
+              { !world with pac = Pacman.set_direction !world.pac d }
+          | None -> !world)
+      | Game_state.LevelComplete ->
+          if is_key_pressed Key.Space then
+            (* restart everything *)
+            Engine.initial_world maze pac ghosts
+          else !world
+      | Game_state.PacDead | Game_state.GameOver ->
+          (* Ignore input in these states *)
+          !world
     in
 
-    (* Apply direction change to pac *)
-    let updated_world =
-      match dir_opt with
-      | Some d -> { !world with pac = Pacman.set_direction !world.pac d }
-      | None -> !world
-    in
+    (* ---------------------------------------------------------- *)
+    (* 2. Advance Game State                                      *)
+    (* ---------------------------------------------------------- *)
 
-    (* -------------------------------------------- *)
-    (* 2. Update World via Engine                   *)
-    (* -------------------------------------------- *)
-    let new_world = Engine.update_world updated_world in
-    world := new_world;
+    (* Engine.update_world applies movement, pellet logic, collision detection,
+       death, respawn, and state transitions. *)
+    world := Engine.update_world world_after_input;
 
-    (* -------------------------------------------- *)
-    (* 3. Render                                    *)
-    (* -------------------------------------------- *)
+    (* ---------------------------------------------------------- *)
+    (* 3. Render                                                  *)
+    (* ---------------------------------------------------------- *)
     begin_drawing ();
     clear_background Color.black;
 
-    let view : Renderer.world_view =
+    (* Convert Engine.world into Renderer.world_view (Renderer is intentionally
+       decoupled from Engine) *)
+    let view =
       {
-        maze = new_world.maze;
-        pac = new_world.pac;
-        ghosts = new_world.ghosts;
-        score = new_world.score;
-        lives = new_world.lives;
-        state = new_world.state;
+        Renderer.maze = !world.maze;
+        pac = !world.pac;
+        ghosts = !world.ghosts;
+        score = !world.score;
+        lives = !world.lives;
+        state = !world.state;
       }
     in
 
@@ -74,7 +108,7 @@ let () =
     end_drawing ()
   done;
 
-  (* -------------------------------------------- *)
-  (* Cleanup                                       *)
-  (* -------------------------------------------- *)
+  (* ========================================================== *)
+  (*  Cleanup                                                    *)
+  (* ========================================================== *)
   close_window ()

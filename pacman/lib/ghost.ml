@@ -1,41 +1,47 @@
-type direction =
-  | Up
-  | Down
-  | Left
-  | Right
-
 type t = {
-  x : int;
-  y : int;
+  x : int;  (** Current x-coordinate. *)
+  y : int;  (** Current y-coordinate. *)
 }
 
-(** [create] creates a new ghost at the given coordinates [x] and [y]. *)
+(** [create x y] creates a new ghost located at tile [(x, y)]. *)
 let create x y = { x; y }
 
-(** [position] returns the ghost's current position (x, y). *)
+(** [position g] returns the ghost's current tile coordinates as [(x, y)]. *)
 let position g = (g.x, g.y)
 
-(** [next_position] calculated the next tile by chasing Pac-Man's position
-    [pac_pos]. *)
-let next_position g ~pac_pos:(px, py) =
-  (* Get ghost's current position. *)
-  let gx = g.x in
-  let gy = g.y in
+(** [next_position g ~pac_pos] computes the tile that the ghost *intends* to
+    move to next based on Pac-Man’s current position [pac_pos].
 
-  (* Calculate horizontal and vertical distance to Pac-Man. *)
+    This is a simplified version of **Blinky’s chase algorithm** from the
+    original Pac-Man: the ghost moves one tile toward Pac-Man along whichever
+    axis has the largest distance to close. If the distances are equal, the
+    ghost prefers vertical movement.
+
+    This produces fast, predictable “direct chaser” behavior without
+    implementing the full multi-mode AI (scatter/frightened/chase cycles).
+
+    IMPORTANT: This function does *not* perform wall or boundary checks. The
+    game engine decides whether the move is legal before applying it. *)
+
+let next_position g ~pac_pos:(px, py) =
+  let gx, gy = (g.x, g.y) in
   let dx = px - gx in
   let dy = py - gy in
 
-  (* Blinky's AI: 1. Find the axis (horizontal or vertical) with the largest
-     distance. 2. Move one step along that axis to close the distance. 3. If the
-     distances are equal then move vertically. *)
-  if abs dx > abs dy then if dx > 0 then (gx + 1, gy) else (gx - 1, gy)
-  else if dy > 0 then (gx, gy + 1)
-  else if dy < 0 then (gx, gy - 1)
-  else (gx, gy)
+  if abs dx > abs dy then
+    (* Move horizontally toward Pac-Man *)
+    if dx > 0 then (gx + 1, gy) else (gx - 1, gy)
+  else if dy > 0 then
+    (* Move vertically downward *)
+    (gx, gy + 1)
+  else if dy < 0 then
+    (* Move vertically upward *)
+    (gx, gy - 1)
+  else
+    (* Already on Pac-Man's tile *)
+    (gx, gy)
 
-(** [move_to] requires [nx] and [ny] which are the x and y coordinates for the
-    ghost's new position and is called by the engine after it has confirmed that
-    the move to (nx, ny) is legal. This function returns a new ghost record with
-    the updated position. *)
+(** [move_to g nx ny] returns a new ghost located at tile [(nx, ny)]. The game
+    engine calls this after confirming that movement to the tile is legal (i.e.,
+    not a wall). *)
 let move_to g nx ny = { x = nx; y = ny }
