@@ -58,4 +58,6 @@ module type CONSTANTS = sig
   val ghost_start_positions : (int * int) list
   val starting_lives : int
   val pellet_score : int
+  val pacdead_pause_frames : int
+  val movement_delay : int
 end

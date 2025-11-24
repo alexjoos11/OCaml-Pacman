@@ -18,9 +18,8 @@ let fps = 60
 
 (* --- Pac-Man gameplay constants --- *)
 let pacman_start_pos = (15, 23)
-
-let ghost_start_positions =
-  [ (14, 14) (* Add more ghost start positions here if you want *) ]
-
+let ghost_start_positions = [ (9, 3); (24, 3) ]
 let starting_lives = 3
 let pellet_score = 10
+let pacdead_pause_frames = 50
+let movement_delay = 5

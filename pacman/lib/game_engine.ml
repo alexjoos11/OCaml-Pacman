@@ -14,7 +14,10 @@ struct
     score : int;  (** Player's accumulated score. *)
     lives : int;  (** Remaining lives before Game Over. *)
     state : game_state;  (** Current global game state. *)
+    pacdead_timer : int;
+    move_cooldown : int;
   }
+
   (** A complete snapshot of the game at a single moment in time. The world is
       immutable: each update produces a new world value. *)
 
@@ -29,6 +32,8 @@ struct
       score = 0;
       lives = Constants.starting_lives;
       state = Intro;
+      pacdead_timer = 0;
+      move_cooldown = 0;
     }
 
   let start w =
@@ -36,20 +41,42 @@ struct
     | Intro -> { w with state = Playing }
     | _ -> w
 
-  (** [try_move maze (x,y) (nx,ny) move_fn entity] attempts to move [entity]
-      from its current tile [(x,y)] to the target tile [(nx,ny)].
+  (**[try_move maze (x,y) (nx,ny) move_fn entity] attempts to move [entity] from
+     its current tile [(x,y)] to the target tile [(nx,ny)].
 
-      - If [(nx,ny)] is outside the maze bounds, the entity remains at [(x,y)].
-      - If [(nx,ny)] contains a wall according to [Maze.is_wall], the entity
-        remains at [(x,y)].
-      - Otherwise, [move_fn entity nx ny] is applied to produce the updated
-        entity.
+     - If [(nx,ny)] is outside the maze bounds, the entity remains at [(x,y)].
+     - If [(nx,ny)] contains a wall according to [Maze.is_wall], the entity
+       remains at [(x,y)].
+     - Otherwise, [move_fn entity nx ny] is applied to produce the updated
+       entity.
 
-      This helper is used for both Pac-Man and ghosts to ensure consistent rules
-      for movement across the maze. *)
-
+     This helper is used for both Pac-Man and ghosts to ensure consistent rules
+     for movement across the maze. *)
   let try_move maze _pos (nx, ny) move_fn entity =
     if Maze.is_wall maze nx ny then entity else move_fn entity nx ny
+
+  (** Helper: respawn Pac-Man and all ghosts after death.
+
+      - Decrements lives.
+      - Resets Pac-Man to starting tile.
+      - Resets ghost list to their initial starting positions.
+      - Clears the pacdead timer.
+      - Returns the world in [Playing] state. *)
+  let respawn w =
+    let px, py = Constants.pacman_start_pos in
+    let ghosts =
+      List.map
+        (fun (gx, gy) -> Ghost.create gx gy)
+        Constants.ghost_start_positions
+    in
+    {
+      w with
+      lives = w.lives - 1;
+      pac = Pacman.create px py;
+      ghosts;
+      pacdead_timer = 0;
+      state = Playing;
+    }
 
   (** Performs a single simulation step of active gameplay:
       - Pac-Man attempts to move one tile in his current direction.
@@ -65,9 +92,17 @@ struct
       List.exists (fun g -> pac_pos = Ghost.position g) w.ghosts
     in
     if pac_dead_start then
-      (* Pac-Man starts on a ghost: immediate death, no movement or pellet
-         logic *)
-      { w with state = PacDead }
+      (* Death occurs immediately, and we start the freeze timer *)
+      { w with state = PacDead; pacdead_timer = Constants.pacdead_pause_frames }
+      (* ---- Movement cooldown ---- *)
+    else if w.move_cooldown > 0 then
+      (* Movement is temporarily paused. Pac-Man and ghosts stay completely
+         still this frame.
+
+         This avoids "moving every frame" at 60 FPS, which is too fast. Instead,
+         we decrement the cooldown and wait until it reaches 0 before permitting
+         another tile movement. *)
+      { w with move_cooldown = w.move_cooldown - 1 }
     else
       (* ---- Pac-Man movement ---- *)
       let px, py = pac_pos in
@@ -76,7 +111,6 @@ struct
         try_move w.maze (px, py) (desired_px, desired_py) Pacman.move_to w.pac
       in
 
-      (* ---- Ghost movement ---- *)
       (* ---- Ghost movement ---- *)
       let ghosts' =
         List.map
@@ -105,8 +139,13 @@ struct
       let pac_dead_after =
         List.exists (fun g -> Pacman.position pac' = Ghost.position g) ghosts'
       in
+
       let final_state =
         if pac_dead_after then PacDead else state_after_pellets
+      in
+
+      let pacdead_timer =
+        if final_state = PacDead then Constants.pacdead_pause_frames else 0
       in
 
       {
@@ -116,6 +155,8 @@ struct
         maze = maze';
         score = score';
         state = final_state;
+        pacdead_timer;
+        move_cooldown = Constants.movement_delay;
       }
 
   (** [update_world w] advances the game state by one frame.
@@ -132,46 +173,28 @@ struct
         the world remains frozen; the renderer may display a "You Win!" screen.
         No automatic respawn or reset occurs.
 
-      - [PacDead] — Pac-Man has collided with a ghost. If lives remain, Pac-Man
-        and the ghosts are respawned at their starting positions and the game
-        continues in [Playing]. If no lives remain, the game transitions to
-        [GameOver].
+      - [PacDead] — Pac-Man has collided with a ghost. A short freeze period
+        occurs (controlled by [pacdead_timer]). When the timer expires:
+
+      • If lives remain, Pac-Man and ghosts are respawned and the state returns
+      to [Playing]. • If no lives remain, the state transitions to [GameOver].
 
       - [Playing] — A normal simulation step occurs (movement, collision checks,
         pellet updates, scoring, and win/loss detection). *)
   let update_world w =
     match w.state with
-    | Intro ->
-        (* The game hasn't started; freeze world. *)
-        w
-    | GameOver ->
-        (* Terminal state; no further updates. *)
-        w
-    | LevelComplete ->
-        (* Single-level game: freeze world on win. *)
-        w
+    | Intro -> w
+    | GameOver -> w
+    | LevelComplete -> w
     | PacDead ->
-        (* Pac-Man died. Check if any lives remain. *)
-        if w.lives <= 1 then
-          (* No lives left → transition to game over. *)
+        if w.pacdead_timer > 0 then
+          (* Still counting down the freeze period *)
+          { w with pacdead_timer = w.pacdead_timer - 1 }
+        else if w.lives <= 1 then
+          (* Timer expired and no lives left → Game Over *)
           { w with state = GameOver }
         else
-          (* Respawn Pac-Man and ghosts, decrement life, and continue
-             playing. *)
-          let px, py = Constants.pacman_start_pos in
-          let ghosts =
-            List.map
-              (fun (gx, gy) -> Ghost.create gx gy)
-              Constants.ghost_start_positions
-          in
-          {
-            w with
-            lives = w.lives - 1;
-            pac = Pacman.create px py;
-            ghosts;
-            state = Playing;
-          }
-    | Playing ->
-        (* Main simulation step. *)
-        update_playing w
+          (* Timer expired, lives remain → respawn everything *)
+          respawn w
+    | Playing -> update_playing w
 end

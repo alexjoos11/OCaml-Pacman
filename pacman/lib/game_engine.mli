@@ -17,6 +17,24 @@ module Make : functor
     lives : int;
         (** Number of lives remaining. When this reaches zero, the game ends. *)
     state : game_state;  (** The current high-level state of the game. *)
+    pacdead_timer : int;
+        (** Countdown in frames used when Pac-Man dies.
+
+            When Pac-Man collides with a ghost, the engine enters the [PacDead]
+            state. Instead of instantly respawning him, we pause gameplay for
+            clarity.
+
+            The timer is decremented each frame while in [PacDead]. When it
+            reaches zero, the engine respawns Pac-Man (if lives remain) or
+            transitions to [GameOver]. *)
+    move_cooldown : int;
+        (** Number of frames remaining before Pac-Man and ghosts are allowed to
+            move again.
+
+            A movement delay is applied after *each tile movement* to slow down
+            gameplay and avoid moving one tile per rendered frame. When
+            [move_cooldown > 0], the engine skips all movement logic for the
+            current frame and simply decrements the counter. *)
   }
   (** A complete snapshot of the current game world. This includes the maze,
       Pac-Man, all ghosts, scoring information, remaining lives, and the current

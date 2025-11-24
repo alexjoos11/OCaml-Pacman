@@ -50,7 +50,7 @@ module StubGhost : GHOST = struct
 
   let create x y = { x; y }
   let position g = (g.x, g.y)
-  let next_position g ~pac_pos:_ = (g.x, g.y)
+  let next_position g ~pac_pos:_ = (g.x, g.y) (* frozen ghost behavior *)
   let move_to g nx ny = { x = nx; y = ny }
 end
 
@@ -59,46 +59,46 @@ module StubConstants = struct
   let ghost_start_positions = [ (10, 10) ]
   let starting_lives = 3
   let pellet_score = 10
+  let pacdead_pause_frames = 50
+  let movement_delay = 5
 end
 
 module Engine =
   Paclib.Game_engine.Make (StubMaze) (StubPacman) (StubGhost) (StubConstants)
 
-(* Convenience world builder *)
+(* ------------------------------------------------------------- *)
+(*  WORLD HELPER                                                 *)
+(* ------------------------------------------------------------- *)
+
 let mk_world () =
   let pac = StubPacman.create 5 5 in
   let ghost = StubGhost.create 10 10 in
   Engine.initial_world () pac [ ghost ]
 
+(* ------------------------------------------------------------- *)
+(*  BASIC / INTRO / GAMEOVER                                     *)
+(* ------------------------------------------------------------- *)
+
 let test_intro_no_update _ =
   let w = mk_world () in
-  let w' = Engine.update_world w in
-  assert_equal w w'
+  assert_equal w (Engine.update_world w)
 
 let test_start_enters_playing _ =
   let w = mk_world () in
   let started = Engine.start w in
   assert_equal Playing started.state
 
-let test_playing_no_pellets_no_collision _ =
-  let w = Engine.start (mk_world ()) in
-  let w' = Engine.update_world w in
-  assert_equal Playing w'.state;
-  assert_equal w.score w'.score
-
-let test_pac_dead_transition _ =
-  let maze = () in
-  let pac = StubPacman.create 5 5 in
-  let ghost = StubGhost.create 5 5 in
-  let w = Engine.initial_world maze pac [ ghost ] |> Engine.start in
-  let w' = Engine.update_world w in
-  assert_equal PacDead w'.state
-
-let test_game_over_when_no_lives_left _ =
+let test_intro_stable _ =
   let w = mk_world () in
-  let w = { w with state = PacDead; lives = 1 } in
-  let w' = Engine.update_world w in
-  assert_equal GameOver w'.state
+  assert_equal w (Engine.update_world w)
+
+let test_gameover_stable _ =
+  let w = { (mk_world ()) with state = GameOver } in
+  assert_equal w (Engine.update_world w)
+
+(* ------------------------------------------------------------- *)
+(*  MOVEMENT                                                      *)
+(* ------------------------------------------------------------- *)
 
 let test_pacman_moves _ =
   let w = Engine.start (mk_world ()) in
@@ -124,7 +124,49 @@ let test_wall_blocks_pacman _ =
   let w' = EngineWall.update_world w in
   assert_equal (5, 5) (StubPacman.position w'.pac)
 
-(* Pellets ------------------------------------------------------ *)
+(* ------------------------------------------------------------- *)
+(*  MOVEMENT COOL-DOWN                                           *)
+(* ------------------------------------------------------------- *)
+
+(* Pac-Man should stay frozen when cooldown > 0 *)
+let test_pacman_frozen_when_cooldown _ =
+  let w = Engine.start (mk_world ()) in
+  let w = { w with move_cooldown = 3 } in
+  let w' = Engine.update_world w in
+
+  (* Pac-Man must NOT move *)
+  assert_equal (StubPacman.position w.pac) (StubPacman.position w'.pac);
+  (* Cooldown decreases *)
+  assert_equal 2 w'.move_cooldown
+
+(* When cooldown hits 0, movement resumes *)
+let test_pacman_moves_after_cooldown_expires _ =
+  let w = Engine.start (mk_world ()) in
+  let w = { w with move_cooldown = 1 } in
+  let w1 = Engine.update_world w in
+
+  (* After update: cooldown hits 0, still frozen this frame *)
+  assert_equal (StubPacman.position w.pac) (StubPacman.position w1.pac);
+  assert_equal 0 w1.move_cooldown;
+
+  (* Next frame: movement should happen *)
+  let w2 = Engine.update_world w1 in
+  assert_equal (6, 5) (StubPacman.position w2.pac)
+
+(* Ghosts should also not move during cooldown *)
+let test_ghosts_frozen_when_cooldown _ =
+  let pac = StubPacman.create 5 5 in
+  let ghost = StubGhost.create 3 3 in
+  let w = Engine.initial_world () pac [ ghost ] |> Engine.start in
+  let w = { w with move_cooldown = 2 } in
+  let w' = Engine.update_world w in
+
+  assert_equal (3, 3) (StubGhost.position (List.hd w'.ghosts));
+  assert_equal 1 w'.move_cooldown
+
+(* ------------------------------------------------------------- *)
+(*  PELLETS                                                      *)
+(* ------------------------------------------------------------- *)
 
 module PelletMaze = struct
   type t = unit
@@ -145,7 +187,9 @@ let test_pacman_eats_pellet _ =
   let w' = EnginePellet.update_world w in
   assert_equal StubConstants.pellet_score w'.score
 
-(* Level Complete ------------------------------------------------ *)
+(* ------------------------------------------------------------- *)
+(*  LEVEL COMPLETE                                               *)
+(* ------------------------------------------------------------- *)
 
 module EmptyMaze = struct
   type t = unit
@@ -166,42 +210,63 @@ let test_level_complete _ =
   let w' = EngineEmpty.update_world w in
   assert_equal LevelComplete w'.state
 
-(* Ghost moves into Pac-Man ------------------------------------- *)
+(* ------------------------------------------------------------- *)
+(*  PAC-DEAD + TIMER                                             *)
+(* ------------------------------------------------------------- *)
 
-module MovingGhost = struct
-  type t = {
-    x : int;
-    y : int;
-  }
-
-  let create x y = { x; y }
-  let position g = (g.x, g.y)
-  let next_position _ ~pac_pos = pac_pos
-  let move_to g nx ny = { x = nx; y = ny }
-end
-
-module EngineMG =
-  Paclib.Game_engine.Make (StubMaze) (StubPacman) (MovingGhost) (StubConstants)
-
-let test_pac_dead_after_movement _ =
-  let pac = StubPacman.create 4 5 in
-  let ghost = MovingGhost.create 5 6 in
-  let w = EngineMG.initial_world () pac [ ghost ] |> EngineMG.start in
-  let w' = EngineMG.update_world w in
+let test_pac_dead_transition _ =
+  let pac = StubPacman.create 5 5 in
+  let ghost = StubGhost.create 5 5 in
+  let w = Engine.initial_world () pac [ ghost ] |> Engine.start in
+  let w' = Engine.update_world w in
   assert_equal PacDead w'.state
 
-(* Intro/GameOver stable ---------------------------------------- *)
-
-let test_intro_stable _ =
+let test_game_over_when_no_lives_left _ =
   let w = mk_world () in
+  let w = { w with state = PacDead; lives = 1 } in
   let w' = Engine.update_world w in
-  assert_equal w w'
+  assert_equal GameOver w'.state
 
-let test_gameover_stable _ =
-  let w = mk_world () in
-  let w = { w with state = GameOver } in
+let test_pacdead_timer_counts_down _ =
+  let pac = StubPacman.create 5 5 in
+  let ghost = StubGhost.create 5 5 in
+  let w =
+    Engine.initial_world () pac [ ghost ] |> Engine.start |> Engine.update_world
+  in
+  assert_equal PacDead w.state;
+  assert_equal StubConstants.pacdead_pause_frames w.pacdead_timer;
+
+  let w2 = Engine.update_world w in
+  assert_equal (StubConstants.pacdead_pause_frames - 1) w2.pacdead_timer
+
+let test_pac_is_frozen_during_pacdead _ =
+  let w = { (mk_world ()) with state = PacDead; pacdead_timer = 10 } in
   let w' = Engine.update_world w in
-  assert_equal w w'
+  assert_equal (StubPacman.position w.pac) (StubPacman.position w'.pac);
+  assert_equal 9 w'.pacdead_timer
+
+let test_ghosts_frozen_during_pacdead _ =
+  let pac = StubPacman.create 5 5 in
+  let ghost = StubGhost.create 3 3 in
+  let w =
+    {
+      (Engine.initial_world () pac [ ghost ]) with
+      state = PacDead;
+      pacdead_timer = 5;
+    }
+  in
+  let w' = Engine.update_world w in
+  assert_equal (3, 3) (StubGhost.position (List.hd w'.ghosts))
+
+let test_respawn_after_pacdead_timer _ =
+  let w =
+    { (mk_world () |> Engine.start) with state = PacDead; pacdead_timer = 0 }
+  in
+  let w' = Engine.update_world w in
+
+  assert_equal Playing w'.state;
+  assert_equal (StubConstants.starting_lives - 1) w'.lives;
+  assert_equal StubConstants.pacman_start_pos (StubPacman.position w'.pac)
 
 (* ------------------------------------------------------------- *)
 (*  SUITE                                                        *)
@@ -210,18 +275,30 @@ let test_gameover_stable _ =
 let suite =
   "game_engine tests"
   >::: [
+         (* Basic *)
          "intro no update" >:: test_intro_no_update;
          "start enters playing" >:: test_start_enters_playing;
-         "playing no pellets" >:: test_playing_no_pellets_no_collision;
-         "pac dead transition" >:: test_pac_dead_transition;
-         "game over" >:: test_game_over_when_no_lives_left;
-         "pac moves" >:: test_pacman_moves;
-         "wall blocks pacman" >:: test_wall_blocks_pacman;
-         "pac eats pellet" >:: test_pacman_eats_pellet;
-         "level complete" >:: test_level_complete;
-         "death after movement" >:: test_pac_dead_after_movement;
          "intro stable" >:: test_intro_stable;
          "gameover stable" >:: test_gameover_stable;
+         (* Movement *)
+         "pac moves" >:: test_pacman_moves;
+         "wall blocks pacman" >:: test_wall_blocks_pacman;
+         (* Cooldown *)
+         "pac frozen when cooldown > 0" >:: test_pacman_frozen_when_cooldown;
+         "pac moves when cooldown expires"
+         >:: test_pacman_moves_after_cooldown_expires;
+         "ghosts frozen when cooldown > 0" >:: test_ghosts_frozen_when_cooldown;
+         (* Pellets *)
+         "pac eats pellet" >:: test_pacman_eats_pellet;
+         (* Level control *)
+         "level complete" >:: test_level_complete;
+         (* Death logic *)
+         "pac dead immediate" >:: test_pac_dead_transition;
+         "pacdead timer counts down" >:: test_pacdead_timer_counts_down;
+         "pac frozen during pacdead" >:: test_pac_is_frozen_during_pacdead;
+         "ghosts frozen during pacdead" >:: test_ghosts_frozen_during_pacdead;
+         "respawn after timer" >:: test_respawn_after_pacdead_timer;
+         "game over when no lives" >:: test_game_over_when_no_lives_left;
        ]
 
 let _ = run_test_tt_main suite

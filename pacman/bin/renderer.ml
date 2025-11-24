@@ -39,9 +39,31 @@ let draw_ghost ghost =
   let gx, gy = Ghost.position ghost in
   draw_rectangle (gx * tile_size) (gy * tile_size) tile_size tile_size Color.red
 
-let draw (world : world_view) =
-  draw_maze world.maze;
-  draw_pac world.pac;
-  List.iter draw_ghost world.ghosts;
-  draw_text (Printf.sprintf "Score: %d" world.score) 10 10 20 Color.white;
-  draw_text (Printf.sprintf "Lives: %d" world.lives) 10 40 20 Color.white
+let draw (w : world_view) =
+  (* draw the maze in all states except maybe intro/gameover *)
+  draw_maze w.maze;
+
+  (* draw entities only during gameplay-like states *)
+  begin
+    match w.state with
+    | Game_state.Playing | Game_state.LevelComplete | Game_state.PacDead ->
+        draw_pac w.pac;
+        List.iter draw_ghost w.ghosts
+    | Intro | GameOver ->
+        () (* do not draw pac/ghosts on title or gameover if you don't want *)
+  end;
+
+  (* UI always visible *)
+  draw_text (Printf.sprintf "Score: %d" w.score) 10 10 20 Color.white;
+  draw_text (Printf.sprintf "Lives: %d" w.lives) 10 35 20 Color.white;
+
+  (* Overlay text depending on game state *)
+  match w.state with
+  | Game_state.Intro ->
+      draw_text "PAC-MAN" 120 120 40 Color.yellow;
+      draw_text "Press SPACE to start" 80 220 30 Color.white
+  | Game_state.PacDead -> draw_text "YOU DIED!" 140 200 40 Color.red
+  | Game_state.LevelComplete ->
+      draw_text "LEVEL COMPLETE!" 100 200 40 Color.green
+  | Game_state.GameOver -> draw_text "GAME OVER" 140 200 40 Color.red
+  | Game_state.Playing -> ()
