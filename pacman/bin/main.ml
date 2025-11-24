@@ -34,7 +34,7 @@ let () =
       Constants.ghost_start_positions
   in
 
-  (* The game starts in the Intro state, so we do NOT call Engine.start yet. *)
+  (* The game starts in the Intro state, so we do not call Engine.start yet. *)
   let world = ref (Engine.initial_world maze pac ghosts) in
 
   (* ========================================================== *)
@@ -66,12 +66,12 @@ let () =
               (* Update Pac-Man’s direction (does NOT move him) *)
               { !world with pac = Pacman.set_direction !world.pac d }
           | None -> !world)
-      | Game_state.LevelComplete ->
+      | Game_state.LevelComplete | Game_state.GameOver ->
           if is_key_pressed Key.Space then
             (* restart everything *)
             Engine.initial_world maze pac ghosts
           else !world
-      | Game_state.PacDead | Game_state.GameOver ->
+      | Game_state.PacDead ->
           (* Ignore input in these states *)
           !world
     in

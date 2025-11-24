@@ -60,4 +60,5 @@ module type CONSTANTS = sig
   val pellet_score : int
   val pacdead_pause_frames : int
   val movement_delay : int
+  val ghost_move_cooldown : int
 end

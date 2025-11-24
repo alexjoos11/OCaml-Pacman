@@ -35,6 +35,20 @@ module Make : functor
             gameplay and avoid moving one tile per rendered frame. When
             [move_cooldown > 0], the engine skips all movement logic for the
             current frame and simply decrements the counter. *)
+    ghost_move_cooldown : int;
+        (** Countdown in frames controlling how often ghosts are allowed to
+            move.
+
+            Unlike Pac-Man, ghosts tend to jitter or change direction too
+            quickly when updated every frame at full framerate. This cooldown
+            introduces a small delay between ghost movement steps.
+
+            - When > 0, all ghosts remain still for this frame.
+            - When it reaches 0, ghosts are allowed to move once, and the
+              cooldown is reset to [Constants.ghost_movement_delay].
+
+            This keeps ghosts moving smoothly and prevents rapid oscillation
+            against walls or corners. *)
   }
   (** A complete snapshot of the current game world. This includes the maze,
       Pac-Man, all ghosts, scoring information, remaining lives, and the current
