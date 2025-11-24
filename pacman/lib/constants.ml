@@ -23,3 +23,4 @@ let starting_lives = 3
 let pellet_score = 10
 let pacdead_pause_frames = 50
 let movement_delay = 5
+let ghost_move_cooldown = 12
