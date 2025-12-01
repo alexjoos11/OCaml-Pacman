@@ -38,7 +38,7 @@ let () =
   let world = ref (Engine.initial_world maze pac ghosts) in
 
   (* ------------------------------------------------------------ *)
-  (*  Helper: attempt direction change, block turns into walls    *)
+  (*  Attempt direction change, block turns into walls    *)
   (* ------------------------------------------------------------ *)
   let safe_turn desired_dir =
     let trial_pac = Pacman.set_direction !world.pac desired_dir in
