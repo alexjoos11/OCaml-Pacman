@@ -1,10 +1,10 @@
 open Raylib
 open Paclib
 
-(* Apply the game engine functor to our concrete implementations *)
+(* Instantiate the concrete engine *)
 module Engine = Game_engine.Make (Maze) (Pacman) (Ghost) (Constants)
 
-(* Window and frame settings pulled from Constants *)
+(* Window config *)
 let width = Constants.window_width
 let height = Constants.window_height
 let fps = Constants.fps
@@ -17,25 +17,37 @@ let () =
   set_target_fps fps;
 
   (* ========================================================== *)
-  (*  Create Initial Game State                                 *)
+  (*  Initial Game State                                         *)
   (* ========================================================== *)
 
-  (* Construct the maze (hardcoded layout) *)
+  (* Maze *)
   let maze = Maze.create () in
 
-  (* Pac-Man spawn *)
+  (* Pac-Man *)
   let px, py = Constants.pacman_start_pos in
   let pac = Pacman.create px py in
 
-  (* Spawn all ghosts listed in Constants *)
+  (* Ghosts *)
   let ghosts =
     List.map
       (fun (gx, gy) -> Ghost.create gx gy)
       Constants.ghost_start_positions
   in
 
-  (* The game starts in the Intro state, so we do not call Engine.start yet. *)
+  (* Start world in Intro state *)
   let world = ref (Engine.initial_world maze pac ghosts) in
+
+  (* ------------------------------------------------------------ *)
+  (*  Attempt direction change, block turns into walls    *)
+  (* ------------------------------------------------------------ *)
+  let safe_turn desired_dir =
+    let trial_pac = Pacman.set_direction !world.pac desired_dir in
+    let nx, ny = Pacman.next_position trial_pac in
+    if Maze.is_wall !world.maze nx ny then
+      (* Reject turn — keep current direction *)
+      Pacman.direction !world.pac
+    else desired_dir
+  in
 
   (* ========================================================== *)
   (*  Main Game Loop                                            *)
@@ -44,54 +56,42 @@ let () =
     (* ---------------------------------------------------------- *)
     (* 1. Handle Player Input                                     *)
     (* ---------------------------------------------------------- *)
-
-    (* World after processing keyboard input *)
     let world_after_input =
       match !world.state with
       | Game_state.Intro ->
-          (* Press SPACE to begin the game *)
           if is_key_pressed Key.Space then Engine.start !world else !world
-      | Game_state.Playing -> (
-          (* Arrow keys adjust Pac-Man’s facing direction *)
+      | Game_state.Playing ->
           let dir_opt =
-            if is_key_down Key.Up then Some Pacman.Up
-            else if is_key_down Key.Down then Some Pacman.Down
-            else if is_key_down Key.Left then Some Pacman.Left
-            else if is_key_down Key.Right then Some Pacman.Right
+            if is_key_down Key.Up then Some (safe_turn Pacman.Up)
+            else if is_key_down Key.Down then Some (safe_turn Pacman.Down)
+            else if is_key_down Key.Left then Some (safe_turn Pacman.Left)
+            else if is_key_down Key.Right then Some (safe_turn Pacman.Right)
             else None
           in
-
-          match dir_opt with
-          | Some d ->
-              (* Update Pac-Man’s direction (does NOT move him) *)
-              { !world with pac = Pacman.set_direction !world.pac d }
-          | None -> !world)
-      | Game_state.LevelComplete | Game_state.GameOver ->
-          if is_key_pressed Key.Space then
-            (* restart everything *)
-            Engine.initial_world maze pac ghosts
+          begin
+            match dir_opt with
+            | Some d -> { !world with pac = Pacman.set_direction !world.pac d }
+            | None -> !world
+          end
+      | Game_state.LevelComplete ->
+          if is_key_pressed Key.Space then Engine.initial_world maze pac ghosts
           else !world
-      | Game_state.PacDead ->
-          (* Ignore input in these states *)
+      | Game_state.PacDead | Game_state.GameOver ->
+          (* No input in dead/game-over states *)
           !world
     in
 
     (* ---------------------------------------------------------- *)
-    (* 2. Advance Game State                                      *)
+    (* 2. Engine Update                                           *)
     (* ---------------------------------------------------------- *)
-
-    (* Engine.update_world applies movement, pellet logic, collision detection,
-       death, respawn, and state transitions. *)
     world := Engine.update_world world_after_input;
 
     (* ---------------------------------------------------------- *)
-    (* 3. Render                                                  *)
+    (* 3. Rendering                                               *)
     (* ---------------------------------------------------------- *)
     begin_drawing ();
     clear_background Color.black;
 
-    (* Convert Engine.world into Renderer.world_view (Renderer is intentionally
-       decoupled from Engine) *)
     let view =
       {
         Renderer.maze = !world.maze;
@@ -102,7 +102,6 @@ let () =
         state = !world.state;
       }
     in
-
     Renderer.draw view;
 
     end_drawing ()

@@ -12,6 +12,9 @@ val create : int -> int -> t
 (** [create x y] constructs a new Pac-Man located at tile [(x, y)] with an
     initial default direction (implementation-defined). *)
 
+val direction : t -> direction
+(*returns direction*)
+
 val set_direction : t -> direction -> t
 (** [set_direction pac dir] returns a new Pac-Man state where Pac-Man’s current
     direction is updated to [dir]. This only changes the direction; it does
