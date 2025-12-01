@@ -23,6 +23,8 @@ type t = {
     ensures a consistent initial direction. *)
 let create x y = { x; y; dir = Right }
 
+let direction p = p.dir
+
 (** [set_direction p d] produces a new Pac-Man state identical to [p], except
     that his intended movement direction is updated to [d].
 
