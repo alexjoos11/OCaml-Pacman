@@ -4,9 +4,9 @@ type t
     is hidden from the engine. *)
 
 val create : int -> int -> t
-(** [create x y] constructs a new ghost located at tile [(x, y)]. The movement
-    behavior of the ghost is determined entirely by the [next_position]
-    function. *)
+(** [create x y] constructs a new unfrightened ghost located at tile [(x, y)].
+    The movement behavior of the ghost is determined entirely by the
+    [next_position] function. *)
 
 val position : t -> int * int
 (** [position g] returns the ghost’s current tile coordinates as [(x, y)]. *)
@@ -20,3 +20,10 @@ val move_to : t -> int -> int -> t
     engine calls this only after determining that the ghost’s intended move is
     legal. Ghosts themselves do not perform wall checks or decide if movement is
     allowed. *)
+
+val set_frightened : t -> bool -> t
+(** [set_frightened g frightened] returns a new ghost identical to [g] but with
+    its [frightened] state set to [frightened]. *)
+
+val is_frightened : t -> bool
+(** [is_frightened g] is true if the ghost is currently in frightened mode. *)
