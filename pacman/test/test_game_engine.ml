@@ -1,10 +1,9 @@
-
 open OUnit2
 open Paclib.Game_engine_interface
 open Paclib.Game_state
 
 (* ------------------------------------------------------------- *)
-(*  STUB MODULES                                                 *)
+(* STUB MODULES                                                 *)
 (* ------------------------------------------------------------- *)
 
 module StubMaze = struct
@@ -14,6 +13,7 @@ module StubMaze = struct
   let pellet_at _ _ _ = false
   let eat_pellet m _ _ = m
   let pellets_exist _ = true
+  let is_power_pellet _ _ _ = false (* --- ADDED STUB --- *)
 end
 
 module StubPacman : PACMAN = struct
@@ -49,10 +49,22 @@ module StubGhost : GHOST = struct
     y : int;
   }
 
+  type speed =
+    | Fast
+    | Regular
+    | Slow
+    | Paused (* --- ADDED TYPE --- *)
+
   let create x y = { x; y }
   let position g = (g.x, g.y)
   let next_position g ~pac_pos:_ = (g.x, g.y) (* frozen ghost behavior *)
   let move_to g nx ny = { x = nx; y = ny }
+
+  (* --- ADDED STUBS --- *)
+  let get_speed _ = Regular
+  let set_speed g _ _ = g
+  let update_duration g ~time:_ = g
+  let get_time _ = 0.0
 end
 
 module StubConstants = struct
@@ -63,13 +75,18 @@ module StubConstants = struct
   let pacdead_pause_frames = 50
   let movement_delay = 5
   let ghost_move_cooldown = 12
+
+  (* --- ADDED STUBS --- *)
+  let power_pellet_score = 50
+  let power_pellet_duration = 7.0
+  let fps = 60
 end
 
 module Engine =
   Paclib.Game_engine.Make (StubMaze) (StubPacman) (StubGhost) (StubConstants)
 
 (* ------------------------------------------------------------- *)
-(*  WORLD HELPER                                                 *)
+(* WORLD HELPER                                                 *)
 (* ------------------------------------------------------------- *)
 
 let mk_world () =
@@ -78,7 +95,7 @@ let mk_world () =
   Engine.initial_world () pac [ ghost ]
 
 (* ------------------------------------------------------------- *)
-(*  BASIC / INTRO / GAMEOVER                                     *)
+(* BASIC / INTRO / GAMEOVER                                     *)
 (* ------------------------------------------------------------- *)
 
 let test_intro_no_update _ =
@@ -99,7 +116,7 @@ let test_gameover_stable _ =
   assert_equal w (Engine.update_world w)
 
 (* ------------------------------------------------------------- *)
-(*  MOVEMENT                                                      *)
+(* MOVEMENT                                                      *)
 (* ------------------------------------------------------------- *)
 
 let test_pacman_moves _ =
@@ -114,6 +131,7 @@ module WallMaze = struct
   let pellet_at _ _ _ = false
   let eat_pellet m _ _ = m
   let pellets_exist _ = true
+  let is_power_pellet _ _ _ = false (* --- ADDED STUB --- *)
 end
 
 module EngineWall =
@@ -127,7 +145,7 @@ let test_wall_blocks_pacman _ =
   assert_equal (5, 5) (StubPacman.position w'.pac)
 
 (* ------------------------------------------------------------- *)
-(*  MOVEMENT COOL-DOWN                                           *)
+(* MOVEMENT COOL-DOWN                                           *)
 (* ------------------------------------------------------------- *)
 
 (* Pac-Man should stay frozen when cooldown > 0 *)
@@ -167,7 +185,7 @@ let test_ghosts_frozen_when_cooldown _ =
   assert_equal 1 w'.move_cooldown
 
 (* ------------------------------------------------------------- *)
-(*  PELLETS                                                      *)
+(* PELLETS                                                      *)
 (* ------------------------------------------------------------- *)
 
 module PelletMaze = struct
@@ -177,6 +195,7 @@ module PelletMaze = struct
   let pellet_at _ x y = (x, y) = (6, 5)
   let eat_pellet m _ _ = m
   let pellets_exist _ = true
+  let is_power_pellet _ _ _ = false (* --- ADDED STUB --- *)
 end
 
 module EnginePellet =
@@ -190,7 +209,7 @@ let test_pacman_eats_pellet _ =
   assert_equal StubConstants.pellet_score w'.score
 
 (* ------------------------------------------------------------- *)
-(*  LEVEL COMPLETE                                               *)
+(* LEVEL COMPLETE                                               *)
 (* ------------------------------------------------------------- *)
 
 module EmptyMaze = struct
@@ -200,6 +219,7 @@ module EmptyMaze = struct
   let pellet_at _ _ _ = false
   let eat_pellet m _ _ = m
   let pellets_exist _ = false
+  let is_power_pellet _ _ _ = false (* --- ADDED STUB --- *)
 end
 
 module EngineEmpty =
@@ -213,7 +233,7 @@ let test_level_complete _ =
   assert_equal LevelComplete w'.state
 
 (* ------------------------------------------------------------- *)
-(*  PAC-DEAD + TIMER                                             *)
+(* PAC-DEAD + TIMER                                             *)
 (* ------------------------------------------------------------- *)
 
 let test_pac_dead_transition _ =
@@ -271,7 +291,7 @@ let test_respawn_after_pacdead_timer _ =
   assert_equal StubConstants.pacman_start_pos (StubPacman.position w'.pac)
 
 (* ------------------------------------------------------------- *)
-(*  SUITE                                                        *)
+(* SUITE                                                        *)
 (* ------------------------------------------------------------- *)
 
 let suite =

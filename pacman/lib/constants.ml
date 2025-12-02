@@ -1,5 +1,5 @@
 (* ===================================================== *)
-(*  Game Constants — Single Source of Truth              *)
+(* Game Constants — Single Source of Truth              *)
 (* ===================================================== *)
 
 (* --- Maze dimensions (in tiles) --- *)
@@ -24,3 +24,7 @@ let pellet_score = 10
 let pacdead_pause_frames = 50
 let movement_delay = 5
 let ghost_move_cooldown = 12
+
+(* --- ADDED CONSTANTS --- *)
+let power_pellet_score = 50
+let power_pellet_duration = 7.0 (* Seconds ghost will be in Slow mode *)

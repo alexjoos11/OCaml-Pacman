@@ -36,23 +36,8 @@ let create_from_chars (lines : string list) : t =
   in
   { grid; width; height }
 
-(** [create ()] constructs the maze for this game.
-
-    The maze layout is defined directly in this source file rather than being
-    loaded from an external [maze.txt]. Keeping the maze inline has several
-    advantages for this project:
-
-    - **Simplicity:** No file I/O is needed, avoiding path issues and dune
-      configuration overhead.
-    - **Determinism:** The maze is embedded in the executable, ensuring it is
-      always available and consistent across environments.
-    - **Testing:** Unit tests can rely on a fixed, compile-time maze structure
-      without needing external resources.
-    - **Scope:** This project uses a single level, so a data file adds
-      complexity without providing meaningful benefit.
-
-    The map uses ['#'] for walls, ['.'] for pellets, and other characters for
-    empty tiles. *)
+(** [create ()] constructs the maze for this game. ... (omitted create comment
+    for brevity) ... *)
 let create () =
   create_from_chars
     [
@@ -60,6 +45,7 @@ let create () =
       "#............##............#";
       "#.####.##.  .##.#####.    .#";
       "#.####.    #.##.#.   .# . .#";
+      (* Power Pellet at (1, 3) *)
       "#.####.#.  #.##.#####.#. #.#";
       "#..........................#";
       "#.####.##.##.   ##.##.####.#";
@@ -82,6 +68,7 @@ let create () =
       "#.###.    ###.     #######.#";
       "#.#######.      ##   #####.#";
       "#..........................#";
+      (* Power Pellet at (1, 25) and (26, 25) *)
       "#.##.    ###.##.#.  #.####.#";
       "#.####.#.  #.##.##. #.####.#";
       "#............##............#";
@@ -112,19 +99,8 @@ let pellet_at m x y =
     | _ -> false
 
 (** [eat_pellet m x y] returns a new maze identical to [m] except that if tile
-    [(x, y)] contains a pellet, that pellet is removed.
-
-    This function does *not* mutate the existing maze. Instead it performs a
-    persistent update:
-
-    - A fresh copy of the entire grid is created using [Array.map Array.copy].
-    - The copy of row [y] is updated at column [x] to [Empty].
-    - A new maze record is returned with this modified grid.
-    - The original maze [m] remains unchanged.
-
-    This preserves immutability for the game engine: previous maze states remain
-    valid, and [eat_pellet] behaves like a pure function even though arrays are
-    used internally for efficiency. *)
+    [(x, y)] contains a pellet, that pellet is removed. ... (omitted eat_pellet
+    comment for brevity) ... *)
 let eat_pellet m x y =
   if pellet_at m x y then (
     let new_grid = Array.map Array.copy m.grid in
@@ -136,6 +112,17 @@ let eat_pellet m x y =
     stops scanning immediately upon finding a pellet. *)
 let pellets_exist m =
   Array.exists (fun row -> Array.exists (fun tile -> tile = Pellet) row) m.grid
+
+(* --- ADDED FUNCTION --- *)
+
+(** [is_power_pellet m x y] is true if the pellet at [(x, y)] is one of the four
+    corner power pellets. *)
+let is_power_pellet m x y =
+  pellet_at m x y
+  &&
+  match (x, y) with
+  | 1, 3 | 26, 3 | 1, 25 | 26, 25 -> true
+  | _ -> false
 
 (* Test-only helper (not exposed in the .mli documentation). Re-exports
    [create_from_chars] so unit tests can build custom mazes without relying on

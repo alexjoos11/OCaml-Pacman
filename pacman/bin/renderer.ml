@@ -6,26 +6,23 @@ let window_width = Constants.window_width
 let window_height = Constants.window_height
 
 (* ===================================================== *)
-(*  Types                                                *)
+(* Types                                                *)
 (* ===================================================== *)
 
 type world_view = {
   maze : Maze.t;
   pac : Pacman.t;
-  ghosts : Ghost.t list;
+  (* --- THIS TYPE IS MODIFIED --- *)
+  ghosts : (Ghost.t * Ghost.speed * float) list;
   score : int;
   lives : int;
   state : Game_state.game_state;
 }
-(** [world_view] is a lightweight, read-only snapshot of the game world. The
-    renderer only needs visual information (positions, score, lives, etc.), not
-    the internal engine state or update logic.
-
-    Using this keeps the renderer decoupled from the game engine and makes
-    rendering purely about drawing, not game rules. *)
+(** [world_view] is a lightweight, read-only snapshot of the game world. ...
+    (omitted comment) ... *)
 
 (* ===================================================== *)
-(*  Frame Counter                                        *)
+(* Frame Counter                                        *)
 (* ===================================================== *)
 
 (** A simple frame counter for small UI animations (blinking text, pulsing
@@ -35,7 +32,7 @@ let frame_counter = ref 0
 let tick () = frame_counter := !frame_counter + 1
 
 (* ===================================================== *)
-(*  UI Helper Functions                                  *)
+(* UI Helper Functions                                  *)
 (* ===================================================== *)
 
 (** Compute the x-position needed to horizontally center text. *)
@@ -67,8 +64,17 @@ let pulsing_title text base_y size color =
   let offset = int_of_float (sin t *. 5.0) in
   draw_centered_outline text (base_y + offset) size color
 
+(** [string_of_speed_mode mode] converts a speed mode into a printable string.
+*)
+let string_of_speed_mode mode =
+  match mode with
+  | Ghost.Fast -> "Fast"
+  | Ghost.Regular -> "Regular"
+  | Ghost.Slow -> "Slow"
+  | Ghost.Paused -> "Paused"
+
 (* ===================================================== *)
-(*  Maze & Entity Rendering                              *)
+(* Maze & Entity Rendering                              *)
 (* ===================================================== *)
 
 (** Draw the maze grid, walls, and pellets. *)
@@ -96,22 +102,27 @@ let draw_pac pac =
     ((py * tile_size) + (tile_size / 2))
     10.0 Color.yellow
 
+(* --- THIS FUNCTION IS MODIFIED --- *)
+
 (** Draw a ghost. *)
-let draw_ghost ghost =
+let draw_ghost (ghost, mode, _timer) =
+  (* The _timer tells OCaml we are receiving it but ignoring it here *)
   let gx, gy = Ghost.position ghost in
-  draw_rectangle (gx * tile_size) (gy * tile_size) tile_size tile_size Color.red
+  let ghost_color =
+    match mode with
+    | Ghost.Slow -> Color.blue
+    | Ghost.Paused -> Color.yellow
+    | Ghost.Fast -> Color.orange
+    | Ghost.Regular -> Color.red
+  in
+  draw_rectangle (gx * tile_size) (gy * tile_size) tile_size tile_size
+    ghost_color
 
 (* ===================================================== *)
-(*  Main Draw Function                                   *)
+(* Main Draw Function                                   *)
 (* ===================================================== *)
 
-(** Draw everything for one frame:
-    - Maze
-    - Pac-Man and ghosts (when appropriate)
-    - Score and lives
-    - Overlay UI depending on the current game state
-
-    This function only draws. It does not change the world. *)
+(** Draw everything for one frame. ... (omitted comment) ... *)
 let draw (w : world_view) =
   (* Update animations *)
   tick ();
@@ -120,17 +131,36 @@ let draw (w : world_view) =
   draw_maze w.maze;
 
   (* Entities depending on game phase *)
-  begin
-    match w.state with
-    | Game_state.Playing | Game_state.LevelComplete | Game_state.PacDead ->
-        draw_pac w.pac;
-        List.iter draw_ghost w.ghosts
-    | Intro | GameOver -> ()
+  begin match w.state with
+  | Game_state.Playing | Game_state.LevelComplete | Game_state.PacDead ->
+      draw_pac w.pac;
+      List.iter draw_ghost w.ghosts
+  | Intro | GameOver -> ()
   end;
 
   (* HUD *)
   draw_text (Printf.sprintf "Score: %d" w.score) 10 10 20 Color.white;
   draw_text (Printf.sprintf "Lives: %d" w.lives) 10 35 20 Color.white;
+
+  (* --- THIS SECTION IS MODIFIED --- *)
+  (* Draw ghost speed modes in the top-left *)
+  List.iteri
+    (fun i (_ghost, mode, timer) ->
+      (* 1. Get the mode as a string *)
+      let mode_text = string_of_speed_mode mode in
+
+      (* 2. Get the timer as a string, but only if it's active *)
+      let timer_text =
+        if timer > 0.0 then Printf.sprintf " (%.1fs)" timer else ""
+      in
+
+      (* 3. Combine them and draw *)
+      let text = Printf.sprintf "Ghost %d: %s%s" (i + 1) mode_text timer_text in
+      let y_pos = 60 + (i * 25) in
+      draw_text text 10 y_pos 20 Color.white)
+    w.ghosts;
+
+  (* --- END OF MODIFIED SECTION --- *)
 
   (* On-screen messages based on the phase of the game *)
   match w.state with

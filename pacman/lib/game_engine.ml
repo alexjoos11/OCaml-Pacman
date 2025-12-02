@@ -22,7 +22,7 @@ struct
     state : game_state;  (** Global game state. *)
     pacdead_timer : int;  (** Freeze countdown after death. *)
     move_cooldown : int;  (** Frames until Pac-Man can move again. *)
-    ghost_move_cooldown : int;  (** Frames until ghosts can move again. *)
+    ghost_move_accumulators : float list;
   }
 
   let initial_world maze pac ghosts =
@@ -35,7 +35,7 @@ struct
       state = Intro;
       pacdead_timer = 0;
       move_cooldown = 0;
-      ghost_move_cooldown = 0;
+      ghost_move_accumulators = List.map (fun _ -> 0.0) ghosts;
     }
 
   let start w =
@@ -61,8 +61,15 @@ struct
       pacdead_timer = 0;
       state = Playing;
       move_cooldown = 0;
-      ghost_move_cooldown = 0;
+      ghost_move_accumulators = List.map (fun _ -> 0.0) ghosts;
     }
+
+  let get_factor (mode : Ghost.speed) =
+    match mode with
+    | Ghost.Fast -> 2.0
+    | Ghost.Regular -> 1.0
+    | Ghost.Slow -> 0.5
+    | Ghost.Paused -> 0.0
 
   (** One frame of gameplay. Movement is tile-based and throttled by independent
       cooldowns. Collision is checked before and after movement. *)
@@ -75,6 +82,10 @@ struct
     if hit_immediate then
       { w with state = PacDead; pacdead_timer = Constants.pacdead_pause_frames }
     else
+      (* --- Update ghost timers --- *)
+      let time = 1.0 /. float_of_int Constants.fps in
+      let time_update = List.map (Ghost.update_duration ~time) w.ghosts in
+
       (* Pac-Man movement: either decrement cooldown OR move now *)
       let pac', move_cooldown' =
         if w.move_cooldown > 0 then (w.pac, w.move_cooldown - 1)
@@ -82,26 +93,41 @@ struct
           let p = Movement.move_pacman w.maze w.pac in
           (p, Constants.movement_delay)
       in
-
+      let move = float_of_int Constants.ghost_move_cooldown in
+      let combine = List.combine time_update w.ghost_move_accumulators in
 
       (* Ghost movement: same pattern, but separate timer *)
-      let ghosts', ghost_cd' =
-        if w.ghost_move_cooldown > 0 then (w.ghosts, w.ghost_move_cooldown - 1)
-        else
-          let moved =
-            List.map
-              (fun g -> Movement.move_ghost w.maze g (Pacman.position pac'))
-              w.ghosts
-          in
-          (moved, Constants.ghost_move_cooldown)
+      let process_list =
+        List.map
+          (fun (g, accum) ->
+            let mode = Ghost.get_speed g in
+            let factor = get_factor mode in
+            let new_accum = accum +. factor in
+            if new_accum >= move then
+              let pac_pos_for_ghost = Pacman.position pac' in
+              let moved_ghost =
+                Movement.move_ghost w.maze g pac_pos_for_ghost
+              in
+              let remain = new_accum -. move in
+              (moved_ghost, remain)
+            else (g, new_accum))
+          combine
       in
+      let ghosts_after_move, ghost_accumulators' = List.split process_list in
 
       (* ---------------- Pellet Eating ---------------- *)
       let px', py' = Pacman.position pac' in
-      let maze', score' =
+      let maze', score', ghosts_after_pellets =
         if Maze.pellet_at w.maze px' py' then
-          (Maze.eat_pellet w.maze px' py', w.score + Constants.pellet_score)
-        else (w.maze, w.score)
+          let maze_after_eat = Maze.eat_pellet w.maze px' py' in
+          (* --- Power Pellet Eaten --- *)
+          let new_score =
+            if Maze.is_power_pellet w.maze px' py' then
+              w.score + Constants.power_pellet_score
+            else w.score + Constants.pellet_score
+          in
+          (maze_after_eat, new_score, ghosts_after_move)
+        else (w.maze, w.score, ghosts_after_move)
       in
 
       (* ---------------- Level Complete ---------------- *)
@@ -111,7 +137,9 @@ struct
 
       (* ---------------- Collision AFTER movement ---------------- *)
       let hit_after =
-        List.exists (fun g -> Pacman.position pac' = Ghost.position g) ghosts'
+        List.exists
+          (fun g -> Pacman.position pac' = Ghost.position g)
+          ghosts_after_pellets
       in
 
       let final_state = if hit_after then PacDead else state_after_pellets in
@@ -124,24 +152,33 @@ struct
       {
         w with
         pac = pac';
-        ghosts = ghosts';
+        ghosts = ghosts_after_pellets;
         maze = maze';
         score = score';
         state = final_state;
         pacdead_timer;
         move_cooldown = move_cooldown';
-        ghost_move_cooldown = ghost_cd';
+        ghost_move_accumulators = ghost_accumulators';
       }
 
+  (** [update_world w] is the main game loop step. It dispatches to other
+      functions based on the current [w.state]. *)
   let update_world w =
     match w.state with
-    | Intro -> w
-    | GameOver -> w
-    | LevelComplete -> w
+    | Intro -> w (* No updates happen in Intro state *)
+    | GameOver -> w (* No updates happen in GameOver state *)
+    | LevelComplete -> w (* No updates happen in LevelComplete state *)
     | PacDead ->
+        (* In PacDead state, just count down the timer *)
         if w.pacdead_timer > 0 then
           { w with pacdead_timer = w.pacdead_timer - 1 }
-        else if w.lives <= 1 then { w with state = GameOver }
-        else respawn w
-    | Playing -> update_playing w
+        else if w.lives <= 1 then
+          (* Timer done, no lives left *)
+          { w with state = GameOver }
+        else
+          (* Timer done, lives remain *)
+          respawn w
+    | Playing ->
+        (* Normal gameplay *)
+        update_playing w
 end
