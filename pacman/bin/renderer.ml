@@ -71,7 +71,7 @@ let pulsing_title text base_y size color =
 (*  Maze & Entity Rendering                              *)
 (* ===================================================== *)
 
-(** Draw the maze grid, walls, and pellets. *)
+(** Draw the maze grid, walls, power pellets, and pellets. *)
 let draw_maze maze =
   let w = Maze.width maze in
   let h = Maze.height maze in
@@ -85,6 +85,11 @@ let draw_maze maze =
           ((x * tile_size) + (tile_size / 2))
           ((y * tile_size) + (tile_size / 2))
           3.0 Color.yellow
+      else if Maze.power_pellet_at maze x y then
+        draw_circle
+          ((x * tile_size) + (tile_size / 2))
+          ((y * tile_size) + (tile_size / 2))
+          6.0 Color.orange
     done
   done
 
@@ -120,12 +125,11 @@ let draw (w : world_view) =
   draw_maze w.maze;
 
   (* Entities depending on game phase *)
-  begin
-    match w.state with
-    | Game_state.Playing | Game_state.LevelComplete | Game_state.PacDead ->
-        draw_pac w.pac;
-        List.iter draw_ghost w.ghosts
-    | Intro | GameOver -> ()
+  begin match w.state with
+  | Game_state.Playing | Game_state.LevelComplete | Game_state.PacDead ->
+      draw_pac w.pac;
+      List.iter draw_ghost w.ghosts
+  | Intro | GameOver -> ()
   end;
 
   (* HUD *)
