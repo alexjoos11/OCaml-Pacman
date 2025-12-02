@@ -22,6 +22,10 @@ val pellet_at : t -> int -> int -> bool
     [(x, y)]. Returns [false] for empty tiles, walls, or out-of-bounds
     coordinates. *)
 
+val power_pellet_at : t -> int -> int -> bool
+(** [power_pellet_at m x y] is [true] if tile [(x, y)] contains a power pellet.
+    Returns [false] for empty tiles, walls, or out-of-bounds coordinates. *)
+
 val eat_pellet : t -> int -> int -> t
 (** [eat_pellet m x y] returns a new maze state where the pellet at tile
     [(x, y)] has been removed, if one existed there. If the tile does not

@@ -2,6 +2,8 @@
 type tile =
   | Wall  (** Impassable wall tile. *)
   | Pellet  (** Pellet that Pac-Man can consume. *)
+  | PowerPellet
+      (** Power pellet that Pac-Man can consume to temporarily eat ghosts. *)
   | Empty  (** Passable empty tile. *)
 
 (** The maze grid is stored as a 2D array for O(1) tile access, which is
@@ -17,10 +19,12 @@ type t = {
 (** [char_to_tile c] converts a map character into a tile:
     - ['#'] becomes [Wall]
     - ['.'] becomes [Pellet]
+    - ['*'] becomes [PowerPellet]
     - any other character becomes [Empty] *)
 let char_to_tile = function
   | '#' -> Wall
   | '.' -> Pellet
+  | '*' -> PowerPellet
   | _ -> Empty
 
 (** [create_from_chars lines] constructs a maze from a textual representation.
@@ -51,13 +55,13 @@ let create_from_chars (lines : string list) : t =
     - **Scope:** This project uses a single level, so a data file adds
       complexity without providing meaningful benefit.
 
-    The map uses ['#'] for walls, ['.'] for pellets, and other characters for
-    empty tiles. *)
+    The map uses ['#'] for walls, ['.'] for pellets, ['*'] for power pellets,
+    and other characters for empty tiles. *)
 let create () =
   create_from_chars
     [
       "############################";
-      "#............##............#";
+      "#..*.........##............#";
       "#.####.##.  .##.#####.    .#";
       "#.####.    #.##.#.   .# . .#";
       "#.####.#.  #.##.#####.#. #.#";
@@ -109,6 +113,14 @@ let pellet_at m x y =
   else
     match m.grid.(y).(x) with
     | Pellet -> true
+    | _ -> false
+
+(** [power_pellet_at m x y] is true if tile [(x, y)] contains a power pellet. *)
+let power_pellet_at m x y =
+  if x < 0 || y < 0 || x >= m.width || y >= m.height then false
+  else
+    match m.grid.(y).(x) with
+    | PowerPellet -> true
     | _ -> false
 
 (** [eat_pellet m x y] returns a new maze identical to [m] except that if tile
