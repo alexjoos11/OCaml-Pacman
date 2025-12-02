@@ -140,7 +140,7 @@ struct
     | PacDead ->
         if w.pacdead_timer > 0 then
           { w with pacdead_timer = w.pacdead_timer - 1 }
-        else if w.lives <= 1 then { w with state = GameOver }
+        else if w.lives <= 1 then { w with state = GameOver; lives = 0 }
         else respawn w
     | Playing -> update_playing w
 end
