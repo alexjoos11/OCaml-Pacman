@@ -96,6 +96,7 @@ struct
       let move = float_of_int Constants.ghost_move_cooldown in
       let combine = List.combine time_update w.ghost_move_accumulators in
 
+
       (* Ghost movement: same pattern, but separate timer *)
       let process_list =
         List.map
