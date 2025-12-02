@@ -75,7 +75,7 @@ let () =
           end
       | Game_state.LevelComplete | Game_state.GameOver ->
           if is_key_pressed Key.Space then Engine.initial_world maze pac ghosts
-          else { !world with lives = 0 }
+          else !world
       | Game_state.PacDead ->
           (* No input in dead/game-over states *)
           !world
