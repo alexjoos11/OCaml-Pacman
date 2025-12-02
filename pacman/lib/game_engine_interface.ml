@@ -19,7 +19,7 @@
     - different ghost movement rules,
     - different starting conditions or constants.
 
-    This structure also allows unit tests to provide minimal stub modules (e.g.,
+    This structure also allows unit tests to provide minimal stub modules (e..g,
     a maze represented as [unit]) while letting the engine behave normally.
 
     By defining these module types in one place, the game engine functor can
@@ -33,6 +33,7 @@ module type MAZE = sig
   val pellet_at : t -> int -> int -> bool
   val eat_pellet : t -> int -> int -> t
   val pellets_exist : t -> bool
+  val is_power_pellet : t -> int -> int -> bool
 end
 
 module type PACMAN = sig
@@ -47,10 +48,23 @@ end
 module type GHOST = sig
   type t
 
+  (* This type is now exposed to the engine *)
+  type speed =
+    | Fast
+    | Regular
+    | Slow
+    | Paused
+
   val create : int -> int -> t
   val position : t -> int * int
   val next_position : t -> pac_pos:int * int -> int * int
   val move_to : t -> int -> int -> t
+
+  (* These functions are now exposed to the engine *)
+  val get_speed : t -> speed
+  val set_speed : t -> speed -> float -> t
+  val update_duration : t -> time:float -> t
+  val get_time : t -> float
 end
 
 module type CONSTANTS = sig
@@ -58,6 +72,11 @@ module type CONSTANTS = sig
   val ghost_start_positions : (int * int) list
   val starting_lives : int
   val pellet_score : int
+
+  (* These constants are now exposed to the engine *)
+  val power_pellet_score : int
+  val power_pellet_duration : float
+  val fps : int
   val pacdead_pause_frames : int
   val movement_delay : int
   val ghost_move_cooldown : int

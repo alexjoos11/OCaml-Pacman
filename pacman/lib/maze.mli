@@ -34,6 +34,10 @@ val pellets_exist : t -> bool
     found. When it returns [false], the maze contains no pellets and the level
     should be considered complete. *)
 
+val is_power_pellet : t -> int -> int -> bool
+(** [is_power_pellet m x y] is true if the pellet at [(x, y)] is a power pellet.
+*)
+
 (** {1 Test-Only Helpers}
 
     The following value is exposed only for unit testing. It allows test modules
