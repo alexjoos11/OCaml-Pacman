@@ -73,10 +73,10 @@ let () =
             | Some d -> { !world with pac = Pacman.set_direction !world.pac d }
             | None -> !world
           end
-      | Game_state.LevelComplete ->
+      | Game_state.LevelComplete | Game_state.GameOver ->
           if is_key_pressed Key.Space then Engine.initial_world maze pac ghosts
-          else !world
-      | Game_state.PacDead | Game_state.GameOver ->
+          else { !world with lives = 0 }
+      | Game_state.PacDead ->
           (* No input in dead/game-over states *)
           !world
     in
