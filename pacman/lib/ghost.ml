@@ -3,6 +3,7 @@ type t = {
   y : int;  (** Current y-coordinate. *)
 }
 
+
 (** [create x y] creates a new ghost located at tile [(x, y)]. *)
 let create x y = { x; y }
 
@@ -44,4 +45,5 @@ let next_position g ~pac_pos:(px, py) =
 (** [move_to g nx ny] returns a new ghost located at tile [(nx, ny)]. The game
     engine calls this after confirming that movement to the tile is legal (i.e.,
     not a wall). *)
+
 let move_to g nx ny = { x = nx; y = ny }
