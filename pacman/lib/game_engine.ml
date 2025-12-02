@@ -96,7 +96,6 @@ struct
       let move = float_of_int Constants.ghost_move_cooldown in
       let combine = List.combine time_update w.ghost_move_accumulators in
 
-
       (* Ghost movement: same pattern, but separate timer *)
       let process_list =
         List.map
@@ -175,7 +174,7 @@ struct
           { w with pacdead_timer = w.pacdead_timer - 1 }
         else if w.lives <= 1 then
           (* Timer done, no lives left *)
-          { w with state = GameOver }
+          { w with state = GameOver; lives = 0 }
         else
           (* Timer done, lives remain *)
           respawn w
