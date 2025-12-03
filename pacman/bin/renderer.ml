@@ -128,8 +128,8 @@ let draw_ghost ghost =
         ((gx * tile_size) + (2 * tile_size / 3))
         ((gy * tile_size) + (tile_size / 3))
         3.0 Color.white
-  | false, true -> draw_ghost_helper tile_size gx gy Color.blue
-  | false, false -> draw_ghost_helper tile_size gx gy Color.red
+  | false, true -> draw_ghost_helper tile_size gx gy (Ghost.color ghost)
+  | false, false -> draw_ghost_helper tile_size gx gy (Ghost.color ghost)
 
 (* ===================================================== *)
 (*  Main Draw Function                                   *)

@@ -52,8 +52,7 @@ struct
     let px, py = Constants.pacman_start_pos in
     let ghosts =
       List.map
-        (fun (gx, gy) -> Ghost.create gx gy)
-        Constants.ghost_start_positions
+        (fun g -> Ghost.respawn g) w.ghosts
     in
     {
       w with
@@ -97,7 +96,10 @@ struct
         else
           let moved =
             List.map
-              (fun g -> Movement.move_ghost w.maze g (Pacman.position pac'))
+              (fun g -> 
+                if Ghost.(is_at_home g && is_eaten g) then
+                Ghost.respawn g else
+                Movement.move_ghost w.maze g (Pacman.position pac'))
               w.ghosts
           in
           (moved, Constants.ghost_move_cooldown)
@@ -206,6 +208,8 @@ struct
           let ghosts' =
             List.map
               (fun g ->
+                if Ghost.is_eaten g then Ghost.respawn g (** dumb ghost failsafe*)
+                else
                 let g = Ghost.set_frightened g false in
                 Ghost.set_eaten g false)
               w.ghosts

@@ -29,9 +29,18 @@ let () =
 
   (* Ghosts *)
   let ghosts =
-    List.map
-      (fun (gx, gy) -> Ghost.create gx gy)
-      Constants.ghost_start_positions
+    let _, ghosts_rev =
+      List.fold_left
+        (fun (count, acc) (gx, gy) ->
+          if count < 2 then
+            (* still allowed to make greenfaulties *)
+            (count + 1, Ghost.create gx gy Ai.greenfaulty :: acc)
+          else
+            (* already used 2 greenfaulties — only defaulties now *)
+            (count, Ghost.create gx gy Ai.defaulty :: acc))
+        (0, []) Constants.ghost_start_positions
+    in
+    List.rev ghosts_rev
   in
 
   (* Start world in Intro state *)

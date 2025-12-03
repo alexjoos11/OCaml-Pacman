@@ -3,7 +3,7 @@ type t
     internal state needed for its movement behavior. The internal representation
     is hidden from the engine. *)
 
-val create : int -> int -> t
+val create : int -> int -> Ai.ai -> t
 (** [create x y] constructs a new unfrightened ghost located at tile [(x, y)].
     The movement behavior of the ghost is determined entirely by the
     [next_position] function. *)
@@ -34,3 +34,13 @@ val set_eaten : t -> bool -> t
 
 val is_eaten : t -> bool
 (** [is_eaten g] is true if the ghost has been eaten by Pac-Man*)
+
+val respawn : t -> t
+(** [respawn g] returns a new ghost identical to [g] but located at its home
+    position and in attack mode. *)
+
+val is_at_home : t -> bool
+(** [is_at_home g] is true if the ghost is currently at its home position. *)
+
+val color : t -> Raylib.Color.t
+(** [color g] returns the color of the ghost. *)

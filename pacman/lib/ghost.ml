@@ -1,64 +1,51 @@
+(** The mode type represents the behavioral state of a ghost in Pac-Man.
+    - [Attack]: The ghost actively pursues Pac-Man according to its hunting
+      strategy.
+    - [Frightened]: The ghost is vulnerable and flees from Pac-Man after
+      consuming a power pellet.
+    - [Eaten]: The ghost has been consumed by Pac-Man and is regenerating at the
+      ghost house. *)
+type mode =
+  | Attack
+  | Frightened
+  | Eaten
+
 type t = {
-  x : int;  (** Current x-coordinate. *)
-  y : int;  (** Current y-coordinate. *)
-  frightened : bool;  (** Whether the ghost is in frightened mode. *)
-  eaten : bool;  (** Whether the ghost has been eaten. *)
+  x : int;
+  y : int;
+  mode : mode;
+  home_x : int;
+  home_y : int;
+  ai : Ai.ai;
 }
 
-(** [create x y] creates a new ghost located at tile [(x, y)]. *)
-let create x y = { x; y; frightened = false; eaten = false }
-
-(** [position g] returns the ghost's current tile coordinates as [(x, y)]. *)
+let create x y ai = { x; y; mode = Attack; home_x = x; home_y = y; ai }
 let position g = (g.x, g.y)
 
-(** [next_position g ~pac_pos] computes the tile that the ghost *intends* to
-    move to next based on Pac-Man’s current position [pac_pos].
+let next_position g ~pac_pos =
+  match g.mode with
+  | Attack -> g.ai.attack ~x:g.x ~y:g.y ~pac_pos
+  | Frightened -> g.ai.runaway ~x:g.x ~y:g.y ~pac_pos
+  | Eaten -> g.ai.go_home ~x:g.x ~y:g.y ~home:(g.home_x, g.home_y)
 
-    This is a simplified version of **Blinky’s chase algorithm** from the
-    original Pac-Man: the ghost moves one tile toward Pac-Man along whichever
-    axis has the largest distance to close. If the distances are equal, the
-    ghost prefers vertical movement.
+let move_to g nx ny = { g with x = nx; y = ny }
 
-    This produces fast, predictable “direct chaser” behavior without
-    implementing the full multi-mode AI (scatter/frightened/chase cycles).
-
-    IMPORTANT: This function does *not* perform wall or boundary checks. The
-    game engine decides whether the move is legal before applying it. *)
-
-let next_position g ~pac_pos:(px, py) =
-  let gx, gy = (g.x, g.y) in
-  let dx = px - gx in
-  let dy = py - gy in
-
-  if abs dx > abs dy then
-    (* Move horizontally toward Pac-Man *)
-    if dx > 0 then (gx + 1, gy) else (gx - 1, gy)
-  else if dy > 0 then
-    (* Move vertically downward *)
-    (gx, gy + 1)
-  else if dy < 0 then
-    (* Move vertically upward *)
-    (gx, gy - 1)
+let set_frightened g bool =
+  if bool then { g with mode = Frightened }
   else
-    (* Already on Pac-Man's tile *)
-    (gx, gy)
+    match g.mode with
+    | Eaten -> g
+    | Attack | Frightened -> { g with mode = Attack }
 
-(** [move_to g nx ny] returns a new ghost located at tile [(nx, ny)]. The game
-    engine calls this after confirming that movement to the tile is legal (i.e.,
-    not a wall). *)
-let move_to g nx ny =
-  { x = nx; y = ny; frightened = g.frightened; eaten = g.eaten }
+let is_frightened g =
+  match g.mode with
+  | Frightened -> true
+  | _ -> false
 
-(** [set_frightened g frightened] returns a new ghost identical to [g] but with
-    its [frightened] state set to [frightened]. *)
-let set_frightened g frightened = { g with frightened }
+let set_eaten g eaten =
+  if eaten then { g with mode = Eaten } else { g with mode = Attack }
 
-(** [is_frightened g] is true if the ghost is currently in frightened mode. *)
-let is_frightened g = g.frightened
-
-(** [set_eaten g eaten] returns a new ghost identical to [g] but with its
-    [eaten] state set to [eaten]. *)
-let set_eaten g eaten = { g with eaten }
-
-(** [is_eaten g] is true if the ghost has been eaten by Pac-Man*)
-let is_eaten g = g.eaten
+let is_eaten g = g.mode = Eaten
+let is_at_home g = (g.x, g.y) = (g.home_x, g.home_y)
+let respawn g = { g with x = g.home_x; y = g.home_y; mode = Attack }
+let color g = g.ai.color

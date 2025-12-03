@@ -54,7 +54,7 @@ end
 module type GHOST = sig
   type t
 
-  val create : int -> int -> t
+  val create : int -> int -> Ai.ai -> t
   val position : t -> int * int
   val next_position : t -> pac_pos:int * int -> int * int
   val move_to : t -> int -> int -> t
@@ -62,6 +62,9 @@ module type GHOST = sig
   val is_frightened : t -> bool
   val set_eaten : t -> bool -> t
   val is_eaten : t -> bool
+  val respawn : t -> t
+  val is_at_home : t -> bool
+  val color : t -> Raylib.Color.t
 end
 
 module type CONSTANTS = sig
