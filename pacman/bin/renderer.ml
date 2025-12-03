@@ -110,12 +110,22 @@ let draw_pac pac =
 (** Draw a ghost. *)
 let draw_ghost ghost =
   let gx, gy = Ghost.position ghost in
-  draw_rectangle (gx * tile_size) (gy * tile_size) tile_size tile_size Color.red
-
-let draw_ghost_frightened ghost =
-  let gx, gy = Ghost.position ghost in
-  draw_rectangle (gx * tile_size) (gy * tile_size) tile_size tile_size
-    Color.blue
+  match (Ghost.is_eaten ghost, Ghost.is_frightened ghost) with
+  | true, _ ->
+      draw_circle
+        ((gx * tile_size) + (tile_size / 3))
+        ((gy * tile_size) + (tile_size / 3))
+        3.0 Color.white;
+      draw_circle
+        ((gx * tile_size) + (2 * tile_size / 3))
+        ((gy * tile_size) + (tile_size / 3))
+        3.0 Color.white
+  | false, true ->
+      draw_rectangle (gx * tile_size) (gy * tile_size) tile_size tile_size
+        Color.blue
+  | false, false ->
+      draw_rectangle (gx * tile_size) (gy * tile_size) tile_size tile_size
+        Color.red
 
 (* ===================================================== *)
 (*  Main Draw Function                                   *)
@@ -137,12 +147,12 @@ let draw (w : world_view) =
 
   (* Entities depending on game phase *)
   begin match w.state with
-  | Game_state.Playing | Game_state.LevelComplete | Game_state.PacDead ->
-      draw_pac w.pac;
-      List.iter draw_ghost w.ghosts
+  | Game_state.Playing
+  | Game_state.LevelComplete
+  | Game_state.PacDead
   | Game_state.PowerUp ->
       draw_pac w.pac;
-      List.iter draw_ghost_frightened w.ghosts
+      List.iter draw_ghost w.ghosts
   | Intro | GameOver -> ()
   end;
 

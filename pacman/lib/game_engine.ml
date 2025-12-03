@@ -73,7 +73,12 @@ struct
     (* ---------------- Early collision BEFORE movement ---------------- *)
     let pac_pos = Pacman.position w.pac in
     let hit_immediate =
-      List.exists (fun g -> pac_pos = Ghost.position g) w.ghosts
+      match w.state with
+      | PowerUp -> false
+      | _ ->
+          List.exists
+            (fun g -> pac_pos = Ghost.position g && not (Ghost.is_eaten g))
+            w.ghosts
     in
     if hit_immediate then
       { w with state = PacDead; pacdead_timer = Constants.pacdead_pause_frames }
@@ -110,7 +115,7 @@ struct
                 w.score + Constants.pellet_score,
                 ghosts',
                 w.powerup_timer,
-                Playing )
+                w.state )
           (* Eating a Power Pellet: update MAZE, SCORE, GHOSTS, POWERUP TIMER,
              STATE*)
           | Some PowerPellet ->
@@ -127,7 +132,7 @@ struct
                 Playing )
           (* New item: update ...*)
           | _ -> failwith "Unexpected/unimplemented item type"
-        else (w.maze, w.score, ghosts', w.powerup_timer, Playing)
+        else (w.maze, w.score, ghosts', w.powerup_timer, w.state)
       in
 
       (* ---------------- Level Complete ---------------- *)
@@ -196,7 +201,7 @@ struct
         else respawn w
     | PowerUp ->
         if w.powerup_timer > 0 then
-          { w with powerup_timer = w.powerup_timer - 1 }
+          update_playing { w with powerup_timer = w.powerup_timer - 1 }
         else
           let ghosts' =
             List.map (fun g -> Ghost.set_frightened g false) w.ghosts
