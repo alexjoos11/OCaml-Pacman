@@ -113,7 +113,17 @@ let draw_ghost_helper tile_size gx gy color =
   let y = gy * tile_size in
   let r = tile_size / 2 in
   Raylib.draw_circle (x + r) (y + r) (float_of_int r) color;
-  Raylib.draw_rectangle x (y + r) tile_size r color
+  Raylib.draw_rectangle x (y + r) tile_size r color;
+  let eye_radius = float_of_int (tile_size / 8) in
+  let pupil_radius = float_of_int (tile_size / 16) in
+  let eye_left_x = x + (tile_size / 3) in
+  let eye_right_x = x + (2 * tile_size / 3) in
+  let eye_y = y + (tile_size / 3) in
+
+  Raylib.draw_circle eye_left_x eye_y eye_radius Color.white;
+  Raylib.draw_circle eye_right_x eye_y eye_radius Color.white;
+  Raylib.draw_circle eye_left_x eye_y pupil_radius Color.black;
+  Raylib.draw_circle eye_right_x eye_y pupil_radius Color.black
 
 (** draw ghost*)
 let draw_ghost ghost =
@@ -128,7 +138,7 @@ let draw_ghost ghost =
         ((gx * tile_size) + (2 * tile_size / 3))
         ((gy * tile_size) + (tile_size / 3))
         3.0 Color.white
-  | false, true -> draw_ghost_helper tile_size gx gy (Ghost.color ghost)
+  | false, true -> draw_ghost_helper tile_size gx gy Color.blue
   | false, false -> draw_ghost_helper tile_size gx gy (Ghost.color ghost)
 
 (* ===================================================== *)
