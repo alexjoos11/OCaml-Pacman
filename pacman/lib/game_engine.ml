@@ -100,15 +100,22 @@ struct
 
       (* ---------------- Pellet Eating ---------------- *)
       let px', py' = Pacman.position pac' in
-      let maze', score' =
+      let maze', score', ghosts', powerup_timer' =
         let item_type = Maze.item_at w.maze px' py' in
         if item_type <> None then
           match item_type with
           | Some Pellet ->
-              (Maze.eat_item w.maze px' py', w.score + Constants.pellet_score)
-          | Some PowerPellet -> failwith "Power pellet eating not implemented"
+              ( Maze.eat_item w.maze px' py',
+                w.score + Constants.pellet_score,
+                ghosts',
+                w.powerup_timer )
+          | Some PowerPellet ->
+              ( Maze.eat_item w.maze px' py',
+                w.score + Constants.power_pellet_score,
+                List.map (fun g -> Ghost.set_frightened g true) ghosts',
+                Constants.power_pellet_duration_frames )
           | _ -> failwith "Unexpected/unimplemented item type"
-        else (w.maze, w.score)
+        else (w.maze, w.score, ghosts', w.powerup_timer)
       in
 
       (* ---------------- Level Complete ---------------- *)
@@ -136,7 +143,7 @@ struct
         score = score';
         state = final_state;
         pacdead_timer;
-        powerup_timer = w.powerup_timer;
+        powerup_timer = powerup_timer';
         move_cooldown = move_cooldown';
         ghost_move_cooldown = ghost_cd';
       }
@@ -158,6 +165,7 @@ struct
           let ghosts' =
             List.map (fun g -> Ghost.set_frightened g false) w.ghosts
           in
-          { w with ghosts = ghosts'; state = Playing }
+          let w = { w with ghosts = ghosts'; state = Playing } in
+          update_playing w
     | Playing -> update_playing w
 end

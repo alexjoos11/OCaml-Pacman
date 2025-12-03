@@ -71,4 +71,7 @@ module type CONSTANTS = sig
   val pacdead_pause_frames : int
   val movement_delay : int
   val ghost_move_cooldown : int
+  val power_pellet_score : int
+  val ghost_eaten_score : int
+  val power_pellet_duration_frames : int
 end

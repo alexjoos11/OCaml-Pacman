@@ -24,3 +24,6 @@ let pellet_score = 10
 let pacdead_pause_frames = 50
 let movement_delay = 5
 let ghost_move_cooldown = 12
+let power_pellet_score = 50
+let ghost_eaten_score = 200
+let power_pellet_duration_frames = fps * 10
