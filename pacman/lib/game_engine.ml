@@ -64,13 +64,6 @@ struct
       ghost_move_accumulators = List.map (fun _ -> 0.0) ghosts;
     }
 
-  let get_factor (mode : Ghost.speed) =
-    match mode with
-    | Ghost.Fast -> 2.0
-    | Ghost.Regular -> 1.0
-    | Ghost.Slow -> 0.5
-    | Ghost.Paused -> 0.0
-
   (** One frame of gameplay. Movement is tile-based and throttled by independent
       cooldowns. Collision is checked before and after movement. *)
   let update_playing w =
@@ -82,10 +75,6 @@ struct
     if hit_immediate then
       { w with state = PacDead; pacdead_timer = Constants.pacdead_pause_frames }
     else
-      (* --- Update ghost timers --- *)
-      let time = 1.0 /. float_of_int Constants.fps in
-      let time_update = List.map (Ghost.update_duration ~time) w.ghosts in
-
       (* Pac-Man movement: either decrement cooldown OR move now *)
       let pac', move_cooldown' =
         if w.move_cooldown > 0 then (w.pac, w.move_cooldown - 1)
@@ -93,6 +82,9 @@ struct
           let p = Movement.move_pacman w.maze w.pac in
           (p, Constants.movement_delay)
       in
+      (* --- Update ghost timers --- *)
+      let time = 1.0 /. float_of_int Constants.fps in
+      let time_update = List.map (Ghost.update_duration ~time) w.ghosts in
       let move = float_of_int Constants.ghost_move_cooldown in
       let combine = List.combine time_update w.ghost_move_accumulators in
 
@@ -100,8 +92,7 @@ struct
       let process_list =
         List.map
           (fun (g, accum) ->
-            let mode = Ghost.get_speed g in
-            let factor = get_factor mode in
+            let factor = Ghost.speed_factor g in
             let new_accum = accum +. factor in
             if new_accum >= move then
               let pac_pos_for_ghost = Pacman.position pac' in
