@@ -2,10 +2,11 @@ type t = {
   x : int;  (** Current x-coordinate. *)
   y : int;  (** Current y-coordinate. *)
   frightened : bool;  (** Whether the ghost is in frightened mode. *)
+  eaten : bool;  (** Whether the ghost has been eaten. *)
 }
 
 (** [create x y] creates a new ghost located at tile [(x, y)]. *)
-let create x y = { x; y; frightened = false }
+let create x y = { x; y; frightened = false; eaten = false }
 
 (** [position g] returns the ghost's current tile coordinates as [(x, y)]. *)
 let position g = (g.x, g.y)
@@ -45,7 +46,8 @@ let next_position g ~pac_pos:(px, py) =
 (** [move_to g nx ny] returns a new ghost located at tile [(nx, ny)]. The game
     engine calls this after confirming that movement to the tile is legal (i.e.,
     not a wall). *)
-let move_to g nx ny = { x = nx; y = ny; frightened = g.frightened }
+let move_to g nx ny =
+  { x = nx; y = ny; frightened = g.frightened; eaten = g.eaten }
 
 (** [set_frightened g frightened] returns a new ghost identical to [g] but with
     its [frightened] state set to [frightened]. *)
@@ -53,3 +55,10 @@ let set_frightened g frightened = { g with frightened }
 
 (** [is_frightened g] is true if the ghost is currently in frightened mode. *)
 let is_frightened g = g.frightened
+
+(** [set_eaten g eaten] returns a new ghost identical to [g] but with its
+    [eaten] state set to [eaten]. *)
+let set_eaten g eaten = { g with eaten }
+
+(** [is_eaten g] is true if the ghost has been eaten by Pac-Man*)
+let is_eaten g = g.eaten

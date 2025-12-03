@@ -80,12 +80,12 @@ let draw_maze maze =
       if Maze.is_wall maze x y then
         draw_rectangle (x * tile_size) (y * tile_size) tile_size tile_size
           Color.darkblue
-      else if Maze.pellet_at maze x y then
+      else if Maze.item_at maze x y = Some Pellet then
         draw_circle
           ((x * tile_size) + (tile_size / 2))
           ((y * tile_size) + (tile_size / 2))
           3.0 Color.yellow
-      else if Maze.power_pellet_at maze x y then
+      else if Maze.item_at maze x y = Some PowerPellet then
         draw_circle
           ((x * tile_size) + (tile_size / 2))
           ((y * tile_size) + (tile_size / 2))
@@ -105,6 +105,11 @@ let draw_pac pac =
 let draw_ghost ghost =
   let gx, gy = Ghost.position ghost in
   draw_rectangle (gx * tile_size) (gy * tile_size) tile_size tile_size Color.red
+
+let draw_ghost_frightened ghost =
+  let gx, gy = Ghost.position ghost in
+  draw_rectangle (gx * tile_size) (gy * tile_size) tile_size tile_size
+    Color.blue
 
 (* ===================================================== *)
 (*  Main Draw Function                                   *)
@@ -129,6 +134,9 @@ let draw (w : world_view) =
   | Game_state.Playing | Game_state.LevelComplete | Game_state.PacDead ->
       draw_pac w.pac;
       List.iter draw_ghost w.ghosts
+  | Game_state.PowerUp ->
+      draw_pac w.pac;
+      List.iter draw_ghost_frightened w.ghosts
   | Intro | GameOver -> ()
   end;
 
@@ -147,4 +155,4 @@ let draw (w : world_view) =
   | Game_state.GameOver ->
       draw_centered_outline "GAME OVER" 200 55 Color.red;
       blinking "Press SPACE to restart" 260 25 Color.white
-  | Game_state.Playing -> ()
+  | Game_state.Playing | Game_state.PowerUp -> ()

@@ -60,7 +60,7 @@ let () =
       match !world.state with
       | Game_state.Intro ->
           if is_key_pressed Key.Space then Engine.start !world else !world
-      | Game_state.Playing ->
+      | Game_state.Playing | Game_state.PowerUp ->
           let dir_opt =
             if is_key_down Key.Up then Some (safe_turn Pacman.Up)
             else if is_key_down Key.Down then Some (safe_turn Pacman.Down)
@@ -68,10 +68,9 @@ let () =
             else if is_key_down Key.Right then Some (safe_turn Pacman.Right)
             else None
           in
-          begin
-            match dir_opt with
-            | Some d -> { !world with pac = Pacman.set_direction !world.pac d }
-            | None -> !world
+          begin match dir_opt with
+          | Some d -> { !world with pac = Pacman.set_direction !world.pac d }
+          | None -> !world
           end
       | Game_state.LevelComplete ->
           if is_key_pressed Key.Space then Engine.initial_world maze pac ghosts

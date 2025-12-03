@@ -27,3 +27,10 @@ val set_frightened : t -> bool -> t
 
 val is_frightened : t -> bool
 (** [is_frightened g] is true if the ghost is currently in frightened mode. *)
+
+val set_eaten : t -> bool -> t
+(** [set_eaten g eaten] returns a new ghost identical to [g] but with its
+    [eaten] state set to [eaten]. *)
+
+val is_eaten : t -> bool
+(** [is_eaten g] is true if the ghost has been eaten by Pac-Man*)

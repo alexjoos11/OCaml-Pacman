@@ -21,6 +21,7 @@ struct
     lives : int;  (** Remaining lives. *)
     state : game_state;  (** Global game state. *)
     pacdead_timer : int;  (** Freeze countdown after death. *)
+    powerup_timer : int;  (** Frames remaining in power-up mode. *)
     move_cooldown : int;  (** Frames until Pac-Man can move again. *)
     ghost_move_cooldown : int;  (** Frames until ghosts can move again. *)
   }
@@ -34,6 +35,7 @@ struct
       lives = Constants.starting_lives;
       state = Intro;
       pacdead_timer = 0;
+      powerup_timer = 0;
       move_cooldown = 0;
       ghost_move_cooldown = 0;
     }
@@ -61,6 +63,7 @@ struct
       pacdead_timer = 0;
       state = Playing;
       move_cooldown = 0;
+      powerup_timer = 0;
       ghost_move_cooldown = 0;
     }
 
@@ -98,14 +101,19 @@ struct
       (* ---------------- Pellet Eating ---------------- *)
       let px', py' = Pacman.position pac' in
       let maze', score' =
-        if Maze.pellet_at w.maze px' py' then
-          (Maze.eat_pellet w.maze px' py', w.score + Constants.pellet_score)
+        let item_type = Maze.item_at w.maze px' py' in
+        if item_type <> None then
+          match item_type with
+          | Some Pellet ->
+              (Maze.eat_item w.maze px' py', w.score + Constants.pellet_score)
+          | Some PowerPellet -> failwith "Power pellet eating not implemented"
+          | _ -> failwith "Unexpected/unimplemented item type"
         else (w.maze, w.score)
       in
 
       (* ---------------- Level Complete ---------------- *)
       let state_after_pellets =
-        if not (Maze.pellets_exist maze') then LevelComplete else Playing
+        if not (Maze.items_exist maze') then LevelComplete else Playing
       in
 
       (* ---------------- Collision AFTER movement ---------------- *)
@@ -128,6 +136,7 @@ struct
         score = score';
         state = final_state;
         pacdead_timer;
+        powerup_timer = w.powerup_timer;
         move_cooldown = move_cooldown';
         ghost_move_cooldown = ghost_cd';
       }
@@ -142,5 +151,13 @@ struct
           { w with pacdead_timer = w.pacdead_timer - 1 }
         else if w.lives <= 1 then { w with state = GameOver }
         else respawn w
+    | PowerUp ->
+        if w.powerup_timer > 0 then
+          { w with powerup_timer = w.powerup_timer - 1 }
+        else
+          let ghosts' =
+            List.map (fun g -> Ghost.set_frightened g false) w.ghosts
+          in
+          { w with ghosts = ghosts'; state = Playing }
     | Playing -> update_playing w
 end

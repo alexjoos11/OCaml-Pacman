@@ -29,11 +29,16 @@
 module type MAZE = sig
   type t
 
+  type item =
+    | Pellet
+    | PowerPellet
+
+  type tile
+
   val is_wall : t -> int -> int -> bool
-  val pellet_at : t -> int -> int -> bool
-  val power_pellet_at : t -> int -> int -> bool
-  val eat_pellet : t -> int -> int -> t
-  val pellets_exist : t -> bool
+  val item_at : t -> int -> int -> item option
+  val eat_item : t -> int -> int -> t
+  val items_exist : t -> bool
 end
 
 module type PACMAN = sig
@@ -54,6 +59,8 @@ module type GHOST = sig
   val move_to : t -> int -> int -> t
   val set_frightened : t -> bool -> t
   val is_frightened : t -> bool
+  val set_eaten : t -> bool -> t
+  val is_eaten : t -> bool
 end
 
 module type CONSTANTS = sig
