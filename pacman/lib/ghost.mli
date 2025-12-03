@@ -55,3 +55,17 @@ val update_duration : t -> time:float -> t
     ghost state and if the timer has expired the ghost state's speed will change
     to [Regular] speed. If the timer has not expired the timer will be reduced
     by [time] and the speed mode will remain the same. *)
+
+val speed_factor : t -> float
+(** [speed_factor g] returns the movement multiplier for the ghost [g]'s current
+    speed mode.
+
+    The mapping is:
+    - [Fast] → 2.0
+    - [Regular] → 1.0
+    - [Slow] → 0.5
+    - [Paused] → 0.0
+
+    The game engine uses this multiplier to scale the ghost’s internal movement
+    accumulator, causing ghosts in different modes to move at different rates.
+*)

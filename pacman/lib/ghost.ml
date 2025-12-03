@@ -38,9 +38,16 @@ let move_to g nx ny = { g with x = nx; y = ny }
 let get_speed g = g.mode
 let set_speed g mode duration = { g with mode; timer = duration }
 
+(** HELPER: to switch modes**)
+let switch_mode g = { g with mode = next_mode g.mode; timer = 5.0 }
+
 let update_duration g ~time =
-  if g.timer > 0.0 then
-    let new_timer = g.timer -. time in
-    if new_timer <= 0.0 then { g with mode = next_mode g.mode; timer = 5.0 }
-    else { g with timer = new_timer }
-  else { g with mode = next_mode g.mode; timer = 5.0 }
+  let new_timer = g.timer -. time in
+  if new_timer <= 0.0 then switch_mode g else { g with timer = new_timer }
+
+let speed_factor g =
+  match get_speed g with
+  | Fast -> 2.0
+  | Regular -> 1.0
+  | Slow -> 0.5
+  | Paused -> 0.0

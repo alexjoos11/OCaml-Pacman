@@ -48,23 +48,12 @@ end
 module type GHOST = sig
   type t
 
-  (* This type is now exposed to the engine *)
-  type speed =
-    | Fast
-    | Regular
-    | Slow
-    | Paused
-
   val create : int -> int -> t
   val position : t -> int * int
   val next_position : t -> pac_pos:int * int -> int * int
   val move_to : t -> int -> int -> t
-
-  (* These functions are now exposed to the engine *)
-  val get_speed : t -> speed
-  val set_speed : t -> speed -> float -> t
   val update_duration : t -> time:float -> t
-  val get_time : t -> float
+  val speed_factor : t -> float
 end
 
 module type CONSTANTS = sig
