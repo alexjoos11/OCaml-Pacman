@@ -204,7 +204,11 @@ struct
           update_playing { w with powerup_timer = w.powerup_timer - 1 }
         else
           let ghosts' =
-            List.map (fun g -> Ghost.set_frightened g false) w.ghosts
+            List.map
+              (fun g ->
+                let g = Ghost.set_frightened g false in
+                Ghost.set_eaten g false)
+              w.ghosts
           in
           let w = { w with ghosts = ghosts'; state = Playing } in
           update_playing w

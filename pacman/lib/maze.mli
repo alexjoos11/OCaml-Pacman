@@ -13,9 +13,9 @@ type tile
 (** Represents a tile that can be filled with various structures like walls,
     items, or nothing*)
 
-val create : unit -> t
-(** [create ()] constructs the default maze for the level. The exact layout
-    (walls, pellets, empty tiles) is determined by the implementation. *)
+val create : string -> t
+(** [create filename] constructs the maze for the level. The exact layout
+    (walls, pellets, empty tiles) is determined by the text file input. *)
 
 val width : t -> int
 (** [width m] returns the width of maze [m] in tiles. *)

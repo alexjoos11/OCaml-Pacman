@@ -21,7 +21,7 @@ let () =
   (* ========================================================== *)
 
   (* Maze *)
-  let maze = Maze.create () in
+  let maze = Maze.create "data/classic.txt" in
 
   (* Pac-Man *)
   let px, py = Constants.pacman_start_pos in
