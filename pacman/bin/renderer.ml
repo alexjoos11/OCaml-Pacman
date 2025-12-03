@@ -107,7 +107,15 @@ let draw_pac pac =
     ((py * tile_size) + (tile_size / 2))
     10.0 Color.yellow
 
-(** Draw a ghost. *)
+(** Drawing out the shape of a regular ghost of a certain color *)
+let draw_ghost_helper tile_size gx gy color =
+  let x = gx * tile_size in
+  let y = gy * tile_size in
+  let r = tile_size / 2 in
+  Raylib.draw_circle (x + r) (y + r) (float_of_int r) color;
+  Raylib.draw_rectangle x (y + r) tile_size r color
+
+(** draw ghost*)
 let draw_ghost ghost =
   let gx, gy = Ghost.position ghost in
   match (Ghost.is_eaten ghost, Ghost.is_frightened ghost) with
@@ -120,12 +128,8 @@ let draw_ghost ghost =
         ((gx * tile_size) + (2 * tile_size / 3))
         ((gy * tile_size) + (tile_size / 3))
         3.0 Color.white
-  | false, true ->
-      draw_rectangle (gx * tile_size) (gy * tile_size) tile_size tile_size
-        Color.blue
-  | false, false ->
-      draw_rectangle (gx * tile_size) (gy * tile_size) tile_size tile_size
-        Color.red
+  | false, true -> draw_ghost_helper tile_size gx gy Color.blue
+  | false, false -> draw_ghost_helper tile_size gx gy Color.red
 
 (* ===================================================== *)
 (*  Main Draw Function                                   *)

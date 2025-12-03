@@ -17,8 +17,10 @@ let window_height = maze_height * tile_size
 let fps = 60
 
 (* --- Pac-Man gameplay constants --- *)
-let pacman_start_pos = (15, 23)
-let ghost_start_positions = [ (9, 3); (24, 3) ]
+(* let pacman_start_pos = (15, 23) *)
+(* let ghost_start_positions = [ (9, 3); (24, 3) ] *)
+let pacman_start_pos = (13, 23)
+let ghost_start_positions = [ (12, 14); (15, 14); (12, 12); (15, 12) ]
 let starting_lives = 3
 let pellet_score = 10
 let pacdead_pause_frames = 50
