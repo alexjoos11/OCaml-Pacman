@@ -1,6 +1,7 @@
 open OUnit2
 open Paclib.Game_engine_interface
 open Paclib.Game_state
+open Paclib.Maze
 
 (* ------------------------------------------------------------- *)
 (*  STUB MODULES                                                 *)
@@ -9,10 +10,20 @@ open Paclib.Game_state
 module StubMaze = struct
   type t = unit
 
+  type item =
+    | Pellet
+    | PowerPellet
+    | Cherry
+
+  type tile =
+    | Wall
+    | Item of item
+    | Empty
+
   let is_wall _ _ _ = false
-  let pellet_at _ _ _ = false
-  let eat_pellet m _ _ = m
-  let pellets_exist _ = true
+  let item_at _ _ _ = None
+  let eat_item m _ _ = m
+  let items_exist _ = true
 end
 
 module StubPacman : PACMAN = struct
@@ -48,10 +59,17 @@ module StubGhost : GHOST = struct
     y : int;
   }
 
-  let create x y = { x; y }
+  let create x y _ = { x; y }
   let position g = (g.x, g.y)
   let next_position g ~pac_pos:_ = (g.x, g.y) (* frozen ghost behavior *)
   let move_to g nx ny = { x = nx; y = ny }
+  let is_frightened _ = false
+  let is_eaten _ = false
+  let color _ = Raylib.Color.red
+  let respawn g = g
+  let set_frightened g _ = g
+  let set_eaten g _ = g
+  let is_at_home _ = false
 end
 
 module StubConstants = struct
@@ -62,6 +80,10 @@ module StubConstants = struct
   let pacdead_pause_frames = 50
   let movement_delay = 5
   let ghost_move_cooldown = 12
+  let power_pellet_duration_frames = 600
+  let cherry_score = 100
+  let power_pellet_score = 50
+  let ghost_eaten_score = 200
 end
 
 module Engine =
@@ -73,7 +95,7 @@ module Engine =
 
 let mk_world () =
   let pac = StubPacman.create 5 5 in
-  let ghost = StubGhost.create 10 10 in
+  let ghost = StubGhost.create 10 10 Paclib.Ai.defaulty in
   Engine.initial_world () pac [ ghost ]
 
 (* ------------------------------------------------------------- *)
@@ -109,10 +131,20 @@ let test_pacman_moves _ =
 module WallMaze = struct
   type t = unit
 
+  type item =
+    | Pellet
+    | PowerPellet
+    | Cherry
+
+  type tile =
+    | Wall
+    | Item of item
+    | Empty
+
   let is_wall _ x y = (x, y) = (6, 5)
-  let pellet_at _ _ _ = false
-  let eat_pellet m _ _ = m
-  let pellets_exist _ = true
+  let item_at _ _ _ = None
+  let eat_item m _ _ = m
+  let items_exist _ = true
 end
 
 module EngineWall =
@@ -120,7 +152,7 @@ module EngineWall =
 
 let test_wall_blocks_pacman _ =
   let pac = StubPacman.create 5 5 in
-  let ghost = StubGhost.create 10 10 in
+  let ghost = StubGhost.create 10 10 Paclib.Ai.defaulty in
   let w = EngineWall.initial_world () pac [ ghost ] |> EngineWall.start in
   let w' = EngineWall.update_world w in
   assert_equal (5, 5) (StubPacman.position w'.pac)
@@ -157,7 +189,7 @@ let test_pacman_moves_after_cooldown_expires _ =
 (* Ghosts should also not move during cooldown *)
 let test_ghosts_frozen_when_cooldown _ =
   let pac = StubPacman.create 5 5 in
-  let ghost = StubGhost.create 3 3 in
+  let ghost = StubGhost.create 3 3 Paclib.Ai.defaulty in
   let w = Engine.initial_world () pac [ ghost ] |> Engine.start in
   let w = { w with move_cooldown = 2 } in
   let w' = Engine.update_world w in
@@ -172,10 +204,20 @@ let test_ghosts_frozen_when_cooldown _ =
 module PelletMaze = struct
   type t = unit
 
+  type item =
+    | Pellet
+    | PowerPellet
+    | Cherry
+
+  type tile =
+    | Wall
+    | Item of item
+    | Empty
+
   let is_wall _ _ _ = false
-  let pellet_at _ x y = (x, y) = (6, 5)
-  let eat_pellet m _ _ = m
-  let pellets_exist _ = true
+  let item_at _ x y = Some Pellet
+  let eat_item m _ _ = m
+  let items_exist _ = true
 end
 
 module EnginePellet =
@@ -183,7 +225,7 @@ module EnginePellet =
 
 let test_pacman_eats_pellet _ =
   let pac = StubPacman.create 5 5 in
-  let ghost = StubGhost.create 10 10 in
+  let ghost = StubGhost.create 10 10 Paclib.Ai.defaulty in
   let w = EnginePellet.initial_world () pac [ ghost ] |> EnginePellet.start in
   let w' = EnginePellet.update_world w in
   assert_equal StubConstants.pellet_score w'.score
@@ -193,21 +235,33 @@ let test_pacman_eats_pellet _ =
 (* ------------------------------------------------------------- *)
 
 module EmptyMaze = struct
-  type t = unit
+  type t = Paclib.Maze.t
+
+  type item =
+    | Pellet
+    | PowerPellet
+    | Cherry
+
+  type tile =
+    | Wall
+    | Item of item
+    | Empty
 
   let is_wall _ _ _ = false
-  let pellet_at _ _ _ = false
-  let eat_pellet m _ _ = m
-  let pellets_exist _ = false
+  let item_at _ _ _ = None
+  let eat_item m _ _ = m
+  let items_exist _ = false
+  let create_for_tests _ = create_for_tests "../data/test_empty.txt"
 end
 
 module EngineEmpty =
   Paclib.Game_engine.Make (EmptyMaze) (StubPacman) (StubGhost) (StubConstants)
 
 let test_level_complete _ =
-  let pac = StubPacman.create 5 5 in
-  let ghost = StubGhost.create 10 10 in
-  let w = EngineEmpty.initial_world () pac [ ghost ] |> EngineEmpty.start in
+  let pac = StubPacman.create 6 6 in
+  let ghost = StubGhost.create 1 1 Paclib.Ai.defaulty in
+  let maze = EmptyMaze.create_for_tests () in
+  let w = EngineEmpty.initial_world maze pac [ ghost ] |> EngineEmpty.start in
   let w' = EngineEmpty.update_world w in
   assert_equal LevelComplete w'.state
 
@@ -217,7 +271,7 @@ let test_level_complete _ =
 
 let test_pac_dead_transition _ =
   let pac = StubPacman.create 5 5 in
-  let ghost = StubGhost.create 5 5 in
+  let ghost = StubGhost.create 5 5 Paclib.Ai.defaulty in
   let w = Engine.initial_world () pac [ ghost ] |> Engine.start in
   let w' = Engine.update_world w in
   assert_equal PacDead w'.state
@@ -230,7 +284,7 @@ let test_game_over_when_no_lives_left _ =
 
 let test_pacdead_timer_counts_down _ =
   let pac = StubPacman.create 5 5 in
-  let ghost = StubGhost.create 5 5 in
+  let ghost = StubGhost.create 5 5 Paclib.Ai.defaulty in
   let w =
     Engine.initial_world () pac [ ghost ] |> Engine.start |> Engine.update_world
   in
@@ -248,7 +302,7 @@ let test_pac_is_frozen_during_pacdead _ =
 
 let test_ghosts_frozen_during_pacdead _ =
   let pac = StubPacman.create 5 5 in
-  let ghost = StubGhost.create 3 3 in
+  let ghost = StubGhost.create 3 3 Paclib.Ai.defaulty in
   let w =
     {
       (Engine.initial_world () pac [ ghost ]) with

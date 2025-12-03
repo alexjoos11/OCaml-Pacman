@@ -55,6 +55,6 @@ val items_exist : t -> bool
 
 (**/**)
 
-val create_from_chars_for_tests : string list -> t
+val create_for_tests : string -> t
 
 (**/**)

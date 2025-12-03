@@ -135,4 +135,4 @@ let items_exist m =
 (* Test-only helper (not exposed in the .mli documentation). Re-exports
    [create_from_chars] so unit tests can build custom mazes without relying on
    the default level design. *)
-let create_from_chars_for_tests = create_from_chars
+let create_for_tests = create
