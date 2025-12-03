@@ -2,6 +2,7 @@ type item =
   | Pellet  (** Pellet that Pac-Man can consume. *)
   | PowerPellet
       (** Power pellet that Pac-Man can consume to temporarily eat ghosts. *)
+  | Cherry  (** Bonus cherry that Pac-Man can consume for extra points. *)
 
 (** Representation of a single maze tile. *)
 type tile =
@@ -23,11 +24,13 @@ type t = {
     - ['#'] becomes [Wall]
     - ['.'] becomes [Pellet]
     - ['*'] becomes [PowerPellet]
+    - ['C'] becomes [Cherry]
     - any other character becomes [Empty] *)
 let char_to_tile = function
   | '#' -> Wall
   | '.' -> Item Pellet
   | '*' -> Item PowerPellet
+  | 'C' -> Item Cherry
   | _ -> Empty
 
 (** [create_from_chars lines] constructs a maze from a textual representation.
@@ -91,7 +94,7 @@ let create () =
       "#..........................#";
       "#.##.    ###.##.#.  #.####.#";
       "#.####.#.  #.##.##. #.####.#";
-      "#............##............#";
+      "#.....C......##............#";
       "#####.             #########";
       "############################";
     ]
@@ -117,6 +120,7 @@ let item_at m x y =
     match m.grid.(y).(x) with
     | Item Pellet -> Some Pellet
     | Item PowerPellet -> Some PowerPellet
+    | Item Cherry -> Some Cherry
     | _ -> None
 
 (** [eat_item m x y] returns a new maze identical to [m] except that if tile

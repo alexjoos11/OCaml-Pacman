@@ -5,7 +5,9 @@ type t
 
 type item =
   | Pellet
-  | PowerPellet  (** Represents an item that can be located on a maze tile. *)
+  | PowerPellet
+  | Cherry
+      (** Represents an item that can be located on a tile within the maze. *)
 
 type tile
 (** Represents a tile that can be filled with various structures like walls,

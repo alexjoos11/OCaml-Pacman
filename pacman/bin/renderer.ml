@@ -90,6 +90,12 @@ let draw_maze maze =
           ((x * tile_size) + (tile_size / 2))
           ((y * tile_size) + (tile_size / 2))
           6.0 Color.orange
+      else if Maze.item_at maze x y = Some Cherry then
+        draw_circle
+          ((x * tile_size) + (tile_size / 2))
+          ((y * tile_size) + (tile_size / 2))
+          5.0 Color.red
+      else ()
     done
   done
 

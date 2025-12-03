@@ -32,6 +32,7 @@ module type MAZE = sig
   type item =
     | Pellet
     | PowerPellet
+    | Cherry
 
   type tile
 
@@ -74,4 +75,5 @@ module type CONSTANTS = sig
   val power_pellet_score : int
   val ghost_eaten_score : int
   val power_pellet_duration_frames : int
+  val cherry_score : int
 end

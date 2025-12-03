@@ -100,35 +100,71 @@ struct
 
       (* ---------------- Pellet Eating ---------------- *)
       let px', py' = Pacman.position pac' in
-      let maze', score', ghosts', powerup_timer' =
+      let maze', score', ghosts', powerup_timer', state' =
         let item_type = Maze.item_at w.maze px' py' in
         if item_type <> None then
           match item_type with
+          (* Eating a normap Pellet: update score, maze*)
           | Some Pellet ->
               ( Maze.eat_item w.maze px' py',
                 w.score + Constants.pellet_score,
                 ghosts',
-                w.powerup_timer )
+                w.powerup_timer,
+                Playing )
+          (* Eating a Power Pellet: update MAZE, SCORE, GHOSTS, POWERUP TIMER,
+             STATE*)
           | Some PowerPellet ->
               ( Maze.eat_item w.maze px' py',
                 w.score + Constants.power_pellet_score,
                 List.map (fun g -> Ghost.set_frightened g true) ghosts',
-                Constants.power_pellet_duration_frames )
+                Constants.power_pellet_duration_frames,
+                PowerUp )
+          | Some Cherry ->
+              ( Maze.eat_item w.maze px' py',
+                w.score + Constants.cherry_score,
+                ghosts',
+                w.powerup_timer,
+                Playing )
+          (* New item: update ...*)
           | _ -> failwith "Unexpected/unimplemented item type"
-        else (w.maze, w.score, ghosts', w.powerup_timer)
+        else (w.maze, w.score, ghosts', w.powerup_timer, Playing)
       in
 
       (* ---------------- Level Complete ---------------- *)
-      let state_after_pellets =
-        if not (Maze.items_exist maze') then LevelComplete else Playing
+      let state' =
+        if not (Maze.items_exist maze') then LevelComplete else state'
       in
 
       (* ---------------- Collision AFTER movement ---------------- *)
-      let hit_after =
-        List.exists (fun g -> Pacman.position pac' = Ghost.position g) ghosts'
+      let pac_hurt, score', ghosts' =
+        match state' with
+        | PowerUp ->
+            let p_pos = Pacman.position pac' in
+            let ghosts_rev, score' =
+              List.fold_left
+                (fun (acc_g, acc_score) g ->
+                  let g_pos = Ghost.position g in
+                  if g_pos = p_pos && not (Ghost.is_eaten g) then
+                    let g' = Ghost.set_eaten g true in
+                    (g' :: acc_g, acc_score + Constants.ghost_eaten_score)
+                  else (g :: acc_g, acc_score))
+                ([], score') ghosts'
+            in
+            (false, score', List.rev ghosts_rev)
+        | Playing ->
+            let p_pos = Pacman.position pac' in
+            let pac_hurt =
+              List.exists
+                (fun g ->
+                  let g_pos = Ghost.position g in
+                  g_pos = p_pos && not (Ghost.is_eaten g))
+                ghosts'
+            in
+            (pac_hurt, score', ghosts')
+        | _ -> failwith "Unexpected game state after pellet consumption"
       in
 
-      let final_state = if hit_after then PacDead else state_after_pellets in
+      let final_state = if pac_hurt then PacDead else state' in
 
       let pacdead_timer =
         if final_state = PacDead then Constants.pacdead_pause_frames else 0
