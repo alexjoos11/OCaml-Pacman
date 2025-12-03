@@ -94,15 +94,35 @@ let draw_maze maze =
     done
   done
 
+(* determines position of mouth *)
+let facing_angle = function
+  | Pacman.Right -> 0.0
+  | Pacman.Left -> 180.0
+  | Pacman.Up -> 270.0
+  | Pacman.Down -> 90.0
+
 (** Draw Pac-Man at his current tile. *)
 let draw_pac pac =
   let px, py = Pacman.position pac in
-  draw_circle
-    ((px * tile_size) + (tile_size / 2))
-    ((py * tile_size) + (tile_size / 2))
-    10.0 Color.yellow
+  let cx = (px * tile_size) + (tile_size / 2) in
+  let cy = (py * tile_size) + (tile_size / 2) in
 
-(* --- THIS FUNCTION IS MODIFIED --- *)
+  (* open and clos emouth *)
+  let t = Raylib.get_time () in
+  let max_open = 50.0 in
+  let mouth = max_open *. abs_float (sin (t *. 8.0)) in
+
+  (* determining which direction the mouth should face *)
+  let angle = facing_angle (Pacman.direction pac) in
+
+  (* creating wedge for mouth *)
+  let start_angle = angle +. (mouth /. 2.0) in
+  let end_angle = angle +. 360.0 -. (mouth /. 2.0) in
+
+  (* draws pacman *)
+  Raylib.draw_circle_sector
+    (Vector2.create (float cx) (float cy))
+    10.0 start_angle end_angle 32 Color.yellow
 
 (** Draw a ghost. *)
 let draw_ghost (ghost, mode, _timer) =
@@ -131,11 +151,12 @@ let draw (w : world_view) =
   draw_maze w.maze;
 
   (* Entities depending on game phase *)
-  begin match w.state with
-  | Game_state.Playing | Game_state.LevelComplete | Game_state.PacDead ->
-      draw_pac w.pac;
-      List.iter draw_ghost w.ghosts
-  | Intro | GameOver -> ()
+  begin
+    match w.state with
+    | Game_state.Playing | Game_state.LevelComplete | Game_state.PacDead ->
+        draw_pac w.pac;
+        List.iter draw_ghost w.ghosts
+    | Intro | GameOver -> ()
   end;
 
   (* HUD *)
