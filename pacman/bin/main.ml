@@ -32,7 +32,12 @@ let () =
     let _, ghosts_rev =
       List.fold_left
         (fun (count, acc) (gx, gy) ->
-          if count < 2 then (count + 1, Ghost.create gx gy Ai.greenfaulty :: acc)
+          if count < 1 then
+            (count + 1, Ghost.create gx gy Ai.orangefaulty :: acc)
+          else if count < 2 then
+            (count + 1, Ghost.create gx gy Ai.pinkfaulty :: acc)
+          else if count < 3 then
+            (count + 1, Ghost.create gx gy Ai.cyanfaulty :: acc)
           else (count, Ghost.create gx gy Ai.defaulty :: acc))
         (0, []) Constants.ghost_start_positions
     in

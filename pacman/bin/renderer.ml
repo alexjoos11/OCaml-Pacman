@@ -71,6 +71,24 @@ let pulsing_title text base_y size color =
 (*  Maze & Entity Rendering                              *)
 (* ===================================================== *)
 
+let draw_cherry x y tile_size =
+  let cx = (x * tile_size) + (tile_size / 2) in
+  let cy = (y * tile_size) + (tile_size / 2) in
+  let fruit_r = float_of_int (tile_size / 5) in
+  let stem_len = tile_size / 4 in
+
+  let c1x = cx - (tile_size / 6) in
+  let c2x = cx + (tile_size / 4) in
+  let cyb = cy + (tile_size / 4) in
+
+  draw_circle c1x cyb fruit_r Color.red;
+  draw_circle c2x cyb fruit_r Color.red;
+
+  draw_line c1x (cyb - 2) cx (cy - stem_len) Color.green;
+  draw_line c2x (cyb - 2) cx (cy - stem_len) Color.green;
+
+  draw_circle cx (cy - stem_len - 2) (float_of_int (tile_size / 12)) Color.green
+
 (** Draw the maze grid, walls, power pellets, and pellets. *)
 let draw_maze maze =
   let w = Maze.width maze in
@@ -89,12 +107,8 @@ let draw_maze maze =
         draw_circle
           ((x * tile_size) + (tile_size / 2))
           ((y * tile_size) + (tile_size / 2))
-          6.0 Color.orange
-      else if Maze.item_at maze x y = Some Cherry then
-        draw_circle
-          ((x * tile_size) + (tile_size / 2))
-          ((y * tile_size) + (tile_size / 2))
-          5.0 Color.red
+          8.0 Color.orange
+      else if Maze.item_at maze x y = Some Cherry then draw_cherry x y tile_size
       else ()
     done
   done
@@ -114,8 +128,9 @@ let draw_ghost_helper tile_size gx gy color =
   let r = tile_size / 2 in
   Raylib.draw_circle (x + r) (y + r) (float_of_int r) color;
   Raylib.draw_rectangle x (y + r) tile_size r color;
-  let eye_radius = float_of_int (tile_size / 8) in
-  let pupil_radius = float_of_int (tile_size / 16) in
+
+  let eye_radius = 3.0 in
+  let pupil_radius = 1.5 in
   let eye_left_x = x + (tile_size / 3) in
   let eye_right_x = x + (2 * tile_size / 3) in
   let eye_y = y + (tile_size / 3) in

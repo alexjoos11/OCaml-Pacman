@@ -42,10 +42,26 @@ let defaulty : ai =
     color = Color.(red);
   }
 
-let greenfaulty : ai =
+let orangefaulty : ai =
   {
     attack = standard_attack;
     runaway = standard_runaway;
     go_home = standard_go_home;
-    color = Color.(green);
+    color = Color.(orange);
+  }
+
+let pinkfaulty : ai =
+  {
+    attack = standard_attack;
+    runaway = standard_runaway;
+    go_home = standard_go_home;
+    color = Color.(pink);
+  }
+
+let cyanfaulty : ai =
+  {
+    attack = standard_attack;
+    runaway = standard_runaway;
+    go_home = standard_go_home;
+    color = Color.create 0 255 255 255;
   }
