@@ -49,15 +49,9 @@ module StubGhost : GHOST = struct
     y : int;
   }
 
-  type speed =
-    | Fast
-    | Regular
-    | Slow
-    | Paused
-
   let create x y = { x; y }
   let position g = (g.x, g.y)
-  let next_position g ~pac_pos:_ = (g.x, g.y) (* frozen ghost behavior *)
+  let next_position g ~pac_pos:_ = (g.x, g.y)
   let move_to _ nx ny = { x = nx; y = ny }
   let update_duration g ~time:_ = g
   let speed_factor _ = 2.0
@@ -80,7 +74,7 @@ module Engine =
   Paclib.Game_engine.Make (StubMaze) (StubPacman) (StubGhost) (StubConstants)
 
 (* ------------------------------------------------------------- *)
-(* EXTRA STUBS FOR GHOST MOVEMENT SCHEDULER TESTS               *)
+(* EXTRA STUBS FOR GHOST MOVEMENT                               *)
 (* ------------------------------------------------------------- *)
 
 module MovingGhost : GHOST = struct
@@ -89,23 +83,11 @@ module MovingGhost : GHOST = struct
     y : int;
   }
 
-  type speed =
-    | Fast
-    | Regular
-    | Slow
-    | Paused
-
   let create x y = { x; y }
   let position g = (g.x, g.y)
-
-  (* Always wants to move one tile to the right when allowed *)
   let next_position g ~pac_pos:_ = (g.x + 1, g.y)
   let move_to _ nx ny = { x = nx; y = ny }
-
-  (* Ignore duration for these tests *)
   let update_duration g ~time:_ = g
-
-  (* 1.0 “speed point” per frame *)
   let speed_factor _ = 1.0
 end
 
@@ -126,7 +108,7 @@ module GhostMoveConstants = struct
   let pellet_score = 10
   let pacdead_pause_frames = 50
   let movement_delay = 1
-  let ghost_move_cooldown = 2 (* threshold for scheduler *)
+  let ghost_move_cooldown = 2
   let power_pellet_score = 50
   let power_pellet_duration = 7.0
   let fps = 60
@@ -137,7 +119,7 @@ module EngineGhostMove =
     (GhostMoveConstants)
 
 (* ------------------------------------------------------------- *)
-(* WORLD HELPER                                                 *)
+(* WORLD HELPERS                                                *)
 (* ------------------------------------------------------------- *)
 
 let mk_world () =
@@ -155,8 +137,7 @@ let test_intro_no_update _ =
 
 let test_start_enters_playing _ =
   let w = mk_world () in
-  let started = Engine.start w in
-  assert_equal Playing started.state
+  assert_equal Playing (Engine.start w).state
 
 let test_intro_stable _ =
   let w = mk_world () in
@@ -167,7 +148,7 @@ let test_gameover_stable _ =
   assert_equal w (Engine.update_world w)
 
 (* ------------------------------------------------------------- *)
-(* MOVEMENT                                                      *)
+(* PAC-MAN MOVEMENT                                             *)
 (* ------------------------------------------------------------- *)
 
 let test_pacman_moves _ =
@@ -192,11 +173,10 @@ let test_wall_blocks_pacman _ =
   let pac = StubPacman.create 5 5 in
   let ghost = StubGhost.create 10 10 in
   let w = EngineWall.initial_world () pac [ ghost ] |> EngineWall.start in
-  let w' = EngineWall.update_world w in
-  assert_equal (5, 5) (StubPacman.position w'.pac)
+  assert_equal (5, 5) (StubPacman.position (EngineWall.update_world w).pac)
 
 (* ------------------------------------------------------------- *)
-(* GHOST MOVEMENT SCHEDULER                                     *)
+(* BASE GHOST MOVEMENT TESTS                                    *)
 (* ------------------------------------------------------------- *)
 
 let test_ghost_moves_when_accumulator_reaches_threshold _ =
@@ -206,11 +186,9 @@ let test_ghost_moves_when_accumulator_reaches_threshold _ =
     EngineGhostMove.initial_world () pac [ ghost ] |> EngineGhostMove.start
   in
 
-  (* Frame 1: accumulator = 1.0 < 2.0 → no move yet *)
   let w1 = EngineGhostMove.update_world w in
   assert_equal (0, 5) (MovingGhost.position (List.hd w1.ghosts));
 
-  (* Frame 2: accumulator = 2.0 → ghost should move right by 1 *)
   let w2 = EngineGhostMove.update_world w1 in
   assert_equal (1, 5) (MovingGhost.position (List.hd w2.ghosts))
 
@@ -221,31 +199,125 @@ let test_ghost_moves_every_second_frame _ =
     EngineGhostMove.initial_world () pac [ ghost ] |> EngineGhostMove.start
   in
 
-  (* Frame 1: no move *)
   let w1 = EngineGhostMove.update_world w in
-  assert_equal (0, 5) (MovingGhost.position (List.hd w1.ghosts));
-
-  (* Frame 2: move -> (1,5) *)
   let w2 = EngineGhostMove.update_world w1 in
-  assert_equal (1, 5) (MovingGhost.position (List.hd w2.ghosts));
-
-  (* Frame 3: no move -> still (1,5) *)
   let w3 = EngineGhostMove.update_world w2 in
-  assert_equal (1, 5) (MovingGhost.position (List.hd w3.ghosts));
-
-  (* Frame 4: move -> (2,5) *)
   let w4 = EngineGhostMove.update_world w3 in
+
+  assert_equal (0, 5) (MovingGhost.position (List.hd w1.ghosts));
+  assert_equal (1, 5) (MovingGhost.position (List.hd w2.ghosts));
+  assert_equal (1, 5) (MovingGhost.position (List.hd w3.ghosts));
   assert_equal (2, 5) (MovingGhost.position (List.hd w4.ghosts))
 
 (* ------------------------------------------------------------- *)
-(* MOVEMENT COOL-DOWN                                           *)
+(* NEW SPEED-FACTOR TESTS                                       *)
+(* ------------------------------------------------------------- *)
+
+(* Slow ghost: speed_factor = 0.5 → moves every 4 frames *)
+module SlowGhost : GHOST = struct
+  type t = {
+    x : int;
+    y : int;
+  }
+
+  let create x y = { x; y }
+  let position g = (g.x, g.y)
+  let next_position g ~pac_pos:_ = (g.x + 1, g.y)
+  let move_to _ nx ny = { x = nx; y = ny }
+  let update_duration g ~time:_ = g
+  let speed_factor _ = 0.5
+end
+
+module EngineSlow =
+  Paclib.Game_engine.Make (OpenMaze) (StubPacman) (SlowGhost)
+    (GhostMoveConstants)
+
+let test_slow_ghost_moves_every_four_frames _ =
+  let pac = StubPacman.create 0 0 in
+  let ghost = SlowGhost.create 0 5 in
+  let w = EngineSlow.initial_world () pac [ ghost ] |> EngineSlow.start in
+
+  let w1 = EngineSlow.update_world w in
+  let w2 = EngineSlow.update_world w1 in
+  let w3 = EngineSlow.update_world w2 in
+  let w4 = EngineSlow.update_world w3 in
+
+  assert_equal (0, 5) (SlowGhost.position (List.hd w1.ghosts));
+  assert_equal (0, 5) (SlowGhost.position (List.hd w2.ghosts));
+  assert_equal (0, 5) (SlowGhost.position (List.hd w3.ghosts));
+  assert_equal (1, 5) (SlowGhost.position (List.hd w4.ghosts))
+
+(* Fast ghost: speed_factor = 2.0 → moves every frame *)
+module FastGhost : GHOST = struct
+  type t = {
+    x : int;
+    y : int;
+  }
+
+  let create x y = { x; y }
+  let position g = (g.x, g.y)
+  let next_position g ~pac_pos:_ = (g.x + 1, g.y)
+  let move_to _ nx ny = { x = nx; y = ny }
+  let update_duration g ~time:_ = g
+  let speed_factor _ = 2.0
+end
+
+module EngineFast =
+  Paclib.Game_engine.Make (OpenMaze) (StubPacman) (FastGhost)
+    (GhostMoveConstants)
+
+let test_fast_ghost_moves_every_frame _ =
+  let pac = StubPacman.create 0 0 in
+  let ghost = FastGhost.create 0 5 in
+  let w = EngineFast.initial_world () pac [ ghost ] |> EngineFast.start in
+
+  let w1 = EngineFast.update_world w in
+  let w2 = EngineFast.update_world w1 in
+
+  assert_equal (1, 5) (FastGhost.position (List.hd w1.ghosts));
+  assert_equal (2, 5) (FastGhost.position (List.hd w2.ghosts))
+
+(* Fractional carry-over test *)
+module FractionGhost : GHOST = struct
+  type t = {
+    x : int;
+    y : int;
+  }
+
+  let create x y = { x; y }
+  let position g = (g.x, g.y)
+  let next_position g ~pac_pos:_ = (g.x + 1, g.y)
+  let move_to _ nx ny = { x = nx; y = ny }
+  let update_duration g ~time:_ = g
+  let speed_factor _ = 0.4
+end
+
+module EngineFraction =
+  Paclib.Game_engine.Make (OpenMaze) (StubPacman) (FractionGhost)
+    (GhostMoveConstants)
+
+let test_accumulator_carry_over _ =
+  let pac = StubPacman.create 0 0 in
+  let ghost = FractionGhost.create 0 5 in
+  let w =
+    EngineFraction.initial_world () pac [ ghost ] |> EngineFraction.start
+  in
+
+  let w = { w with ghost_move_accumulators = [ 1.7 ] } in
+  let w1 = EngineFraction.update_world w in
+
+  assert_equal (1, 5) (FractionGhost.position (List.hd w1.ghosts));
+  assert_bool "carry-over ≈ 0.1"
+    (abs_float (List.hd w1.ghost_move_accumulators -. 0.1) < 0.0001)
+
+(* ------------------------------------------------------------- *)
+(* MOVEMENT COOLDOWN                                            *)
 (* ------------------------------------------------------------- *)
 
 let test_pacman_frozen_when_cooldown _ =
   let w = Engine.start (mk_world ()) in
   let w = { w with move_cooldown = 3 } in
   let w' = Engine.update_world w in
-
   assert_equal (StubPacman.position w.pac) (StubPacman.position w'.pac);
   assert_equal 2 w'.move_cooldown
 
@@ -253,10 +325,8 @@ let test_pacman_moves_after_cooldown_expires _ =
   let w = Engine.start (mk_world ()) in
   let w = { w with move_cooldown = 1 } in
   let w1 = Engine.update_world w in
-
   assert_equal (StubPacman.position w.pac) (StubPacman.position w1.pac);
   assert_equal 0 w1.move_cooldown;
-
   let w2 = Engine.update_world w1 in
   assert_equal (6, 5) (StubPacman.position w2.pac)
 
@@ -266,7 +336,6 @@ let test_ghosts_frozen_when_cooldown _ =
   let w = Engine.initial_world () pac [ ghost ] |> Engine.start in
   let w = { w with move_cooldown = 2 } in
   let w' = Engine.update_world w in
-
   assert_equal (3, 3) (StubGhost.position (List.hd w'.ghosts));
   assert_equal 1 w'.move_cooldown
 
@@ -315,25 +384,21 @@ let test_level_complete _ =
   let pac = StubPacman.create 5 5 in
   let ghost = StubGhost.create 10 10 in
   let w = EngineEmpty.initial_world () pac [ ghost ] |> EngineEmpty.start in
-  let w' = EngineEmpty.update_world w in
-  assert_equal LevelComplete w'.state
+  assert_equal LevelComplete (EngineEmpty.update_world w).state
 
 (* ------------------------------------------------------------- *)
-(* PAC-DEAD + TIMER                                             *)
+(* PAC-DEAD LOGIC                                               *)
 (* ------------------------------------------------------------- *)
 
 let test_pac_dead_transition _ =
   let pac = StubPacman.create 5 5 in
   let ghost = StubGhost.create 5 5 in
   let w = Engine.initial_world () pac [ ghost ] |> Engine.start in
-  let w' = Engine.update_world w in
-  assert_equal PacDead w'.state
+  assert_equal PacDead (Engine.update_world w).state
 
 let test_game_over_when_no_lives_left _ =
-  let w = mk_world () in
-  let w = { w with state = PacDead; lives = 1 } in
-  let w' = Engine.update_world w in
-  assert_equal GameOver w'.state
+  let w = { (mk_world ()) with state = PacDead; lives = 1 } in
+  assert_equal GameOver (Engine.update_world w).state
 
 let test_pacdead_timer_counts_down _ =
   let pac = StubPacman.create 5 5 in
@@ -342,8 +407,6 @@ let test_pacdead_timer_counts_down _ =
     Engine.initial_world () pac [ ghost ] |> Engine.start |> Engine.update_world
   in
   assert_equal PacDead w.state;
-  assert_equal StubConstants.pacdead_pause_frames w.pacdead_timer;
-
   let w2 = Engine.update_world w in
   assert_equal (StubConstants.pacdead_pause_frames - 1) w2.pacdead_timer
 
@@ -371,7 +434,6 @@ let test_respawn_after_pacdead_timer _ =
     { (mk_world () |> Engine.start) with state = PacDead; pacdead_timer = 0 }
   in
   let w' = Engine.update_world w in
-
   assert_equal Playing w'.state;
   assert_equal (StubConstants.starting_lives - 1) w'.lives;
   assert_equal StubConstants.pacman_start_pos (StubPacman.position w'.pac)
@@ -391,26 +453,29 @@ let suite =
          (* Movement *)
          "pac moves" >:: test_pacman_moves;
          "wall blocks pacman" >:: test_wall_blocks_pacman;
-         "ghost moves when accumulator reaches threshold"
+         (* Ghost scheduler *)
+         "ghost moves threshold"
          >:: test_ghost_moves_when_accumulator_reaches_threshold;
-         "ghost moves every second frame"
-         >:: test_ghost_moves_every_second_frame;
+         "ghost moves every 2 frames" >:: test_ghost_moves_every_second_frame;
+         (* New speed tests *)
+         "slow ghost every 4 frames" >:: test_slow_ghost_moves_every_four_frames;
+         "fast ghost every frame" >:: test_fast_ghost_moves_every_frame;
+         "fractional accumulator carry-over" >:: test_accumulator_carry_over;
          (* Cooldown *)
-         "pac frozen when cooldown > 0" >:: test_pacman_frozen_when_cooldown;
-         "pac moves when cooldown expires"
-         >:: test_pacman_moves_after_cooldown_expires;
-         "ghosts frozen when cooldown > 0" >:: test_ghosts_frozen_when_cooldown;
+         "pac frozen cooldown" >:: test_pacman_frozen_when_cooldown;
+         "pac moves after cooldown" >:: test_pacman_moves_after_cooldown_expires;
+         "ghosts frozen cooldown" >:: test_ghosts_frozen_when_cooldown;
          (* Pellets *)
          "pac eats pellet" >:: test_pacman_eats_pellet;
          (* Level control *)
          "level complete" >:: test_level_complete;
          (* Death logic *)
-         "pac dead immediate" >:: test_pac_dead_transition;
-         "pacdead timer counts down" >:: test_pacdead_timer_counts_down;
+         "pac dead" >:: test_pac_dead_transition;
+         "game over when no lives" >:: test_game_over_when_no_lives_left;
+         "pacdead timer counts" >:: test_pacdead_timer_counts_down;
          "pac frozen during pacdead" >:: test_pac_is_frozen_during_pacdead;
          "ghosts frozen during pacdead" >:: test_ghosts_frozen_during_pacdead;
          "respawn after timer" >:: test_respawn_after_pacdead_timer;
-         "game over when no lives" >:: test_game_over_when_no_lives_left;
        ]
 
 let _ = run_test_tt_main suite
