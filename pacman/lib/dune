@@ -1,4 +1,6 @@
 (library
- (name paclib))
+ (name paclib)
+ (libraries raylib)
+ (instrumentation (backend bisect_ppx)))
 
 
