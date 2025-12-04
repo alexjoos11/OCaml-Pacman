@@ -21,7 +21,7 @@ let () =
   (* ========================================================== *)
 
   (* Maze *)
-  let maze = Maze.create () in
+  let maze = Maze.create "data/classic.txt" in
 
   (* Pac-Man *)
   let px, py = Constants.pacman_start_pos in
@@ -29,9 +29,19 @@ let () =
 
   (* Ghosts *)
   let ghosts =
-    List.map
-      (fun (gx, gy) -> Ghost.create gx gy)
-      Constants.ghost_start_positions
+    let _, ghosts_rev =
+      List.fold_left
+        (fun (count, acc) (gx, gy) ->
+          if count < 1 then
+            (count + 1, Ghost.create gx gy Ai.orangefaulty :: acc)
+          else if count < 2 then
+            (count + 1, Ghost.create gx gy Ai.pinkfaulty :: acc)
+          else if count < 3 then
+            (count + 1, Ghost.create gx gy Ai.cyanfaulty :: acc)
+          else (count, Ghost.create gx gy Ai.defaulty :: acc))
+        (0, []) Constants.ghost_start_positions
+    in
+    List.rev ghosts_rev
   in
 
   (* Start world in Intro state *)
@@ -60,7 +70,7 @@ let () =
       match !world.state with
       | Game_state.Intro ->
           if is_key_pressed Key.Space then Engine.start !world else !world
-      | Game_state.Playing ->
+      | Game_state.Playing | Game_state.PowerUp ->
           let dir_opt =
             if is_key_down Key.Up then Some (safe_turn Pacman.Up)
             else if is_key_down Key.Down then Some (safe_turn Pacman.Down)

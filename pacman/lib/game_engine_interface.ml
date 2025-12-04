@@ -29,11 +29,17 @@
 module type MAZE = sig
   type t
 
+  type item =
+    | Pellet
+    | PowerPellet
+    | Cherry
+
+  type tile
+
   val is_wall : t -> int -> int -> bool
-  val pellet_at : t -> int -> int -> bool
-  val eat_pellet : t -> int -> int -> t
-  val pellets_exist : t -> bool
-  val is_power_pellet : t -> int -> int -> bool
+  val item_at : t -> int -> int -> item option
+  val eat_item : t -> int -> int -> t
+  val items_exist : t -> bool
 end
 
 module type PACMAN = sig
@@ -48,10 +54,17 @@ end
 module type GHOST = sig
   type t
 
-  val create : int -> int -> t
+  val create : int -> int -> Ai.ai -> t
   val position : t -> int * int
   val next_position : t -> pac_pos:int * int -> int * int
   val move_to : t -> int -> int -> t
+  val set_frightened : t -> bool -> t
+  val is_frightened : t -> bool
+  val set_eaten : t -> bool -> t
+  val is_eaten : t -> bool
+  val respawn : t -> t
+  val is_at_home : t -> bool
+  val color : t -> Raylib.Color.t
   val update_duration : t -> time:float -> t
   val speed_factor : t -> float
 end
@@ -61,10 +74,12 @@ module type CONSTANTS = sig
   val ghost_start_positions : (int * int) list
   val starting_lives : int
   val pellet_score : int
-  val power_pellet_score : int
-  val power_pellet_duration : float
   val fps : int
   val pacdead_pause_frames : int
   val movement_delay : int
   val ghost_move_cooldown : int
+  val power_pellet_score : int
+  val ghost_eaten_score : int
+  val power_pellet_duration_frames : int
+  val cherry_score : int
 end

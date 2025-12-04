@@ -1,0 +1,37 @@
+GET POWER PELLETS WORKING
+- [x] maze
+    - [x] add to maze visual
+    - [x] maze.mli update
+    - [x] change pellet_at to return power pellet info and not bool (now items_at)
+        - [x] add item type to create new pellet types
+    - [ ] add cherries to the game
+    - [ ] parameterize create on csv input
+    - [x] update eat pellet to eat_item
+- [x] pacman
+- [ ] ghost
+    - [x] add frightened status to ghosts.ml
+    - [x] ghosts.mli update
+    - [ ] add a dead state to the ghost
+    - [ ] add running away AI
+- [ ] game_engine.ml
+    - [ ] on ghost collision add a pat match to see if eaten or kill
+        - [ ] dead ghosts don't make collisions
+    - [x] game engine interface update all of above modules
+    - [x] add in a ghost cooldown timer
+    - [ ] pellet eating logic for different items
+        - [x] build skeleton
+        - [ ] implement power pellet eating
+    - [ ] add a way for ghosts to return to home when eaten
+- [ ] renderer
+    - [ ] add ghost color change in frightened form & when pacman strong
+- [ ] state
+    - [x] add powerup state
+- [ ] timer somewhere on the power
+- [ ] Constants
+    - [x] add const for power pellet score & ghost eaten score
+    - [x] add power pellet duration
+
+
+
+- [ ] tests >:P
+
