@@ -12,11 +12,11 @@ let window_height = Constants.window_height
 type world_view = {
   maze : Maze.t;
   pac : Pacman.t;
-  (* --- THIS TYPE IS MODIFIED --- *)
   ghosts : (Ghost.t * Ghost.speed * float) list;
   score : int;
   lives : int;
   state : Game_state.game_state;
+  speedup_timer : int;
 }
 (** [world_view] is a lightweight, read-only snapshot of the game world. ...
     (omitted comment) ... *)
@@ -241,4 +241,6 @@ let draw (w : world_view) =
   | Game_state.GameOver ->
       draw_centered_outline "GAME OVER" 200 55 Color.red;
       blinking "Press SPACE to restart" 260 25 Color.white
-  | Game_state.Playing | Game_state.PowerUp -> ()
+  | Game_state.Playing ->
+      if w.speedup_timer > 0 then
+        draw_centered_outline "SPEED UP!" 200 50 Color.yellow

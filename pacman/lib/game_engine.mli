@@ -55,6 +55,11 @@ module Make : functor
             accumulator passes a threshold (from
             [Constants.ghost_move_cooldown]), that ghost moves and the threshold
             is subtracted from its accumulator. *)
+    frames_alive : int;
+        (*used to keep track of how long pacman has been alive. This helps with
+          adjusting speed*)
+    speedup_timer : int;
+        (*counts frames and is used for the speedup display message*)
   }
   (** A complete snapshot of the current game world. This includes the maze,
       Pac-Man, all ghosts, scoring information, remaining lives, and the current
