@@ -74,8 +74,6 @@ module type CONSTANTS = sig
   val ghost_start_positions : (int * int) list
   val starting_lives : int
   val pellet_score : int
-
-  (* These constants are now exposed to the engine *)
   val fps : int
   val pacdead_pause_frames : int
   val movement_delay : int
