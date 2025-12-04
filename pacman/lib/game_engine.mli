@@ -27,6 +27,18 @@ module Make : functor
             The timer is decremented each frame while in [PacDead]. When it
             reaches zero, the engine respawns Pac-Man (if lives remain) or
             transitions to [GameOver]. *)
+    powerup_timer : int;
+        (** Countdown in frames for how long the power-up (frightened)
+            lasts.contents
+
+            When Pac-Man collides with a power pellet, the enginer enters the
+            [PowerUp] state. This sets all ghosts to frightened mode for a
+            limited time.into frightened mode, and begins to decrement this
+            timer each frame.
+
+            When it reaches zero, the engine reverts all eaten and frighten
+            ghosts to their original state and the game state transitions to
+            [Playing]*)
     move_cooldown : int;
         (** Number of frames remaining before Pac-Man and ghosts are allowed to
             move again.
@@ -43,6 +55,11 @@ module Make : functor
             accumulator passes a threshold (from
             [Constants.ghost_move_cooldown]), that ghost moves and the threshold
             is subtracted from its accumulator. *)
+    frames_alive : int;
+        (*used to keep track of how long pacman has been alive. This helps with
+          adjusting speed*)
+    speedup_timer : int;
+        (*counts frames and is used for the speedup display message*)
   }
   (** A complete snapshot of the current game world. This includes the maze,
       Pac-Man, all ghosts, scoring information, remaining lives, and the current
