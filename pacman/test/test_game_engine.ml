@@ -163,10 +163,14 @@ let test_intro_stable _ =
   assert_equal w (Engine.update_world w)
 
 let test_gameover_stable _ =
-  let test_data =
-    { final_score = 0; old_high_score = 0; update_high_score = false }
+  let w =
+    {
+      (mk_world ()) with
+      state =
+        GameOver
+          { final_score = 0; old_high_score = 0; update_high_score = false };
+    }
   in
-  let w = { (mk_world ()) with state = GameOver test_data } in
   assert_equal w (Engine.update_world w)
 
 (* ------------------------------------------------------------- *)
