@@ -17,14 +17,17 @@ let window_height = maze_height * tile_size
 let fps = 60
 
 (* --- Pac-Man gameplay constants --- *)
-let pacman_start_pos = (15, 23)
-let ghost_start_positions = [ (9, 3); (24, 3) ]
+(* let pacman_start_pos = (15, 23) *)
+(* let ghost_start_positions = [ (9, 3); (24, 3) ] *)
+let pacman_start_pos = (13, 23)
+let ghost_start_positions = [ (12, 13); (15, 13); (12, 15); (15, 15) ]
 let starting_lives = 3
 let pellet_score = 10
 let pacdead_pause_frames = 50
 let movement_delay = 7
 let ghost_move_cooldown = 12
-
-(* --- ADDED CONSTANTS --- *)
 let power_pellet_score = 50
+let ghost_eaten_score = 200
+let power_pellet_duration_frames = fps * 10
+let cherry_score = 100
 let power_pellet_duration = 7.0 (* Seconds ghost will be in Slow mode *)

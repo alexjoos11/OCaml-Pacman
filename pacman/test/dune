@@ -1,3 +1,4 @@
 (tests
  (names test_game_engine test_pacman test_ghost test_maze)
- (libraries paclib ounit2))
+ (libraries paclib ounit2)
+ (deps (glob_files_rec ../data/*)))
