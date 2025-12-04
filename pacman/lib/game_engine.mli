@@ -46,6 +46,8 @@ module Make : functor
     frames_alive : int;
         (*used to keep track of how long pacman has been alive. This helps with
           adjusting speed*)
+    speedup_timer : int;
+        (*counts frames and is used for the speedup display message*)
   }
   (** A complete snapshot of the current game world. This includes the maze,
       Pac-Man, all ghosts, scoring information, remaining lives, and the current

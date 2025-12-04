@@ -24,6 +24,7 @@ struct
     move_cooldown : int;  (** Frames until Pac-Man can move again. *)
     ghost_move_accumulators : float list;
     frames_alive : int;
+    speedup_timer : int;
   }
 
   let initial_world maze pac ghosts =
@@ -38,6 +39,7 @@ struct
       move_cooldown = 0;
       ghost_move_accumulators = List.map (fun _ -> 0.0) ghosts;
       frames_alive = 0;
+      speedup_timer = 0;
     }
 
   let start w =
@@ -65,6 +67,7 @@ struct
       move_cooldown = 0;
       ghost_move_accumulators = List.map (fun _ -> 0.0) ghosts;
       frames_alive = 0;
+      speedup_timer = 0;
     }
 
   (** One frame of gameplay. Movement is tile-based and throttled by independent
@@ -72,6 +75,26 @@ struct
   let update_playing w =
     (*count frames that pacman has been alive*)
     let w = { w with frames_alive = w.frames_alive + 1 } in
+
+    (*want speedup to happen every 7.5 seconds. this converts frames to
+      seconds*)
+    let frames_to_sec = int_of_float (7.5 *. float_of_int Constants.fps) in
+
+    (* update speedup message timer every frame *)
+    let w =
+      if
+        frames_to_sec > 0 && w.frames_alive > 0
+        && w.frames_alive mod frames_to_sec = 0
+      then
+        (*means we hit a multiple of 7.5 seconds – show "SPEED UP!" for 1
+          second*)
+        { w with speedup_timer = Constants.fps }
+      else if w.speedup_timer > 0 then
+        (*used for countdown message. on screen for fps frames = 1 second*)
+        { w with speedup_timer = w.speedup_timer - 1 }
+      else w
+    in
+
     (* ---------------- Early collision BEFORE movement ---------------- *)
     let pac_pos = Pacman.position w.pac in
     let hit_immediate =
@@ -86,25 +109,20 @@ struct
         else
           let p = Movement.move_pacman w.maze w.pac in
 
-          (*want speedup to happen every 7.5 seconds. this converts frames to
-            seconds*)
-          let frames_to_sec =
-            int_of_float (7.5 *. float_of_int Constants.fps)
-          in
-
           (* How many 7.5-second blocks have elapsed *)
           let blocks =
             if frames_to_sec <= 0 then 0 else w.frames_alive / frames_to_sec
           in
 
           (*find the new delay. Delay cannot be less than 1*)
-          let new_delay blocks =
+          let new_delay =
             let del = Constants.movement_delay - blocks in
-            if del < 0 || del = 0 then 1 else del
+            if del <= 0 then 1 else del
           in
 
-          (p, new_delay blocks)
+          (p, new_delay)
       in
+
       (* --- Update ghost timers --- *)
       let time = 1.0 /. float_of_int Constants.fps in
       let time_update = List.map (Ghost.update_duration ~time) w.ghosts in
