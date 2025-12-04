@@ -198,13 +198,16 @@ let draw (w : world_view) =
 
   (* Entities depending on game phase *)
   begin match w.state with
+
   | Game_state.Playing
   | Game_state.LevelComplete
-  | Game_state.PacDead
+  | Game_state.PacDead ->
+      draw_pac w.pac;
+      List.iter draw_ghost w.ghosts
   | Game_state.PowerUp ->
       draw_pac w.pac;
       List.iter draw_ghost w.ghosts
-  | Intro | GameOver -> ()
+  | Game_state.Intro | Game_state.GameOver -> ()
   end;
 
   (* HUD *)
@@ -238,8 +241,19 @@ let draw (w : world_view) =
   | Game_state.PacDead -> draw_centered_outline "YOU DIED!" 200 50 Color.red
   | Game_state.LevelComplete ->
       draw_centered_outline "LEVEL COMPLETE!" 200 50 Color.green
-  | Game_state.GameOver ->
+  | Game_state.GameOver info ->
       draw_centered_outline "GAME OVER" 200 55 Color.red;
+      let score_text = Printf.sprintf "Final Score: %d" info.final_score in
+      draw_centered score_text 280 30 Color.white;
+      let high_score =
+        if info.update_high_score then info.final_score else info.old_high_score
+      in
+      let high_score_text = Printf.sprintf "High Score: %d" high_score in
+      draw_centered high_score_text 320 30 Color.yellow;
+
+      if info.update_high_score then
+        blinking "NEW HIGH SCORE!" 370 35 Color.green;
+
       blinking "Press SPACE to restart" 260 25 Color.white
   | Game_state.Playing ->
       if w.speedup_timer > 0 then

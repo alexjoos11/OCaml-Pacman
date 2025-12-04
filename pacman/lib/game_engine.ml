@@ -248,13 +248,31 @@ struct
   let update_world w =
     match w.state with
     | Intro -> w (* No updates happen in Intro state *)
-    | GameOver -> w (* No updates happen in GameOver state *)
+    | GameOver _ -> w (* No updates happen in GameOver state *)
     | LevelComplete -> w (* No updates happen in LevelComplete state *)
     | PacDead ->
         (* In PacDead state, just count down the timer *)
         if w.pacdead_timer > 0 then
           { w with pacdead_timer = w.pacdead_timer - 1 }
-        else if w.lives <= 1 then { w with state = GameOver }
+        else if w.lives <= 1 then (
+          let player_score = w.score in
+          let old_high_score = High_score.load_score () in
+          let update_high_score = player_score > old_high_score in
+          if update_high_score then High_score.save_score player_score;
+
+          let display_high_score =
+            if update_high_score then player_score else old_high_score
+          in
+          let game_end_info =
+            Game_state.GameOver
+              {
+                final_score = player_score;
+                old_high_score = display_high_score;
+                update_high_score;
+              }
+          in
+          (* Timer done, no lives left *)
+          { w with state = game_end_info; lives = 0 })
         else respawn w
     | PowerUp ->
         if w.powerup_timer > 0 then

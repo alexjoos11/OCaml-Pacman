@@ -191,7 +191,14 @@ let test_intro_stable _ =
   assert_equal w (Engine.update_world w)
 
 let test_gameover_stable _ =
-  let w = { (mk_world ()) with state = GameOver } in
+  let w =
+    {
+      (mk_world ()) with
+      state =
+        GameOver
+          { final_score = 0; old_high_score = 0; update_high_score = false };
+    }
+  in
   assert_equal w (Engine.update_world w)
 
 (* ------------------------------------------------------------- *)
@@ -494,8 +501,12 @@ let test_pac_dead_transition _ =
   assert_equal PacDead (Engine.update_world w).state
 
 let test_game_over_when_no_lives_left _ =
-  let w = { (mk_world ()) with state = PacDead; lives = 1 } in
-  assert_equal GameOver (Engine.update_world w).state
+  let w = mk_world () in
+  let w = { w with state = PacDead; lives = 1 } in
+  let w' = Engine.update_world w in
+  match w'.state with
+  | GameOver _ -> ()
+  | _ -> assert_failure "Didn't transition to GameOver state"
 
 let test_pacdead_timer_counts_down _ =
   let pac = StubPacman.create 5 5 in
