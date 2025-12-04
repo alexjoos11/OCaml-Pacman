@@ -23,6 +23,7 @@ struct
     pacdead_timer : int;  (** Freeze countdown after death. *)
     move_cooldown : int;  (** Frames until Pac-Man can move again. *)
     ghost_move_accumulators : float list;
+    frames_alive : int;
   }
 
   let initial_world maze pac ghosts =
@@ -36,6 +37,7 @@ struct
       pacdead_timer = 0;
       move_cooldown = 0;
       ghost_move_accumulators = List.map (fun _ -> 0.0) ghosts;
+      frames_alive = 0;
     }
 
   let start w =
@@ -62,11 +64,14 @@ struct
       state = Playing;
       move_cooldown = 0;
       ghost_move_accumulators = List.map (fun _ -> 0.0) ghosts;
+      frames_alive = 0;
     }
 
   (** One frame of gameplay. Movement is tile-based and throttled by independent
       cooldowns. Collision is checked before and after movement. *)
   let update_playing w =
+    (*count frames that pacman has been alive*)
+    let w = { w with frames_alive = w.frames_alive + 1 } in
     (* ---------------- Early collision BEFORE movement ---------------- *)
     let pac_pos = Pacman.position w.pac in
     let hit_immediate =
@@ -80,7 +85,25 @@ struct
         if w.move_cooldown > 0 then (w.pac, w.move_cooldown - 1)
         else
           let p = Movement.move_pacman w.maze w.pac in
-          (p, Constants.movement_delay)
+
+          (*want speedup to happen every 7.5 seconds. this converts frames to
+            seconds*)
+          let frames_to_sec =
+            int_of_float (7.5 *. float_of_int Constants.fps)
+          in
+
+          (* How many 7.5-second blocks have elapsed *)
+          let blocks =
+            if frames_to_sec <= 0 then 0 else w.frames_alive / frames_to_sec
+          in
+
+          (*find the new delay. Delay cannot be less than 1*)
+          let new_delay blocks =
+            let del = Constants.movement_delay - blocks in
+            if del < 0 || del = 0 then 1 else del
+          in
+
+          (p, new_delay blocks)
       in
       (* --- Update ghost timers --- *)
       let time = 1.0 /. float_of_int Constants.fps in

@@ -12,7 +12,6 @@ let window_height = Constants.window_height
 type world_view = {
   maze : Maze.t;
   pac : Pacman.t;
-  (* --- THIS TYPE IS MODIFIED --- *)
   ghosts : (Ghost.t * Ghost.speed * float) list;
   score : int;
   lives : int;
