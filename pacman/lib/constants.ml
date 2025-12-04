@@ -1,5 +1,5 @@
 (* ===================================================== *)
-(*  Game Constants — Single Source of Truth              *)
+(* Game Constants — Single Source of Truth              *)
 (* ===================================================== *)
 
 (* --- Maze dimensions (in tiles) --- *)
@@ -30,3 +30,4 @@ let power_pellet_score = 50
 let ghost_eaten_score = 200
 let power_pellet_duration_frames = fps * 10
 let cherry_score = 100
+let power_pellet_duration = 7.0 (* Seconds ghost will be in Slow mode *)

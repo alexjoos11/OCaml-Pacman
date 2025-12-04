@@ -6,26 +6,23 @@ let window_width = Constants.window_width
 let window_height = Constants.window_height
 
 (* ===================================================== *)
-(*  Types                                                *)
+(* Types                                                *)
 (* ===================================================== *)
 
 type world_view = {
   maze : Maze.t;
   pac : Pacman.t;
-  ghosts : Ghost.t list;
+  (* --- THIS TYPE IS MODIFIED --- *)
+  ghosts : (Ghost.t * Ghost.speed * float) list;
   score : int;
   lives : int;
   state : Game_state.game_state;
 }
-(** [world_view] is a lightweight, read-only snapshot of the game world. The
-    renderer only needs visual information (positions, score, lives, etc.), not
-    the internal engine state or update logic.
-
-    Using this keeps the renderer decoupled from the game engine and makes
-    rendering purely about drawing, not game rules. *)
+(** [world_view] is a lightweight, read-only snapshot of the game world. ...
+    (omitted comment) ... *)
 
 (* ===================================================== *)
-(*  Frame Counter                                        *)
+(* Frame Counter                                        *)
 (* ===================================================== *)
 
 (** A simple frame counter for small UI animations (blinking text, pulsing
@@ -35,7 +32,7 @@ let frame_counter = ref 0
 let tick () = frame_counter := !frame_counter + 1
 
 (* ===================================================== *)
-(*  UI Helper Functions                                  *)
+(* UI Helper Functions                                  *)
 (* ===================================================== *)
 
 (** Compute the x-position needed to horizontally center text. *)
@@ -67,8 +64,17 @@ let pulsing_title text base_y size color =
   let offset = int_of_float (sin t *. 5.0) in
   draw_centered_outline text (base_y + offset) size color
 
+(** [string_of_speed_mode mode] converts a speed mode into a printable string.
+*)
+let string_of_speed_mode mode =
+  match mode with
+  | Ghost.Fast -> "Fast"
+  | Ghost.Regular -> "Regular"
+  | Ghost.Slow -> "Slow"
+  | Ghost.Paused -> "Paused"
+
 (* ===================================================== *)
-(*  Maze & Entity Rendering                              *)
+(* Maze & Entity Rendering                              *)
 (* ===================================================== *)
 
 let draw_cherry x y tile_size =
@@ -113,13 +119,35 @@ let draw_maze maze =
     done
   done
 
+(* determines position of mouth *)
+let facing_angle = function
+  | Pacman.Right -> 0.0
+  | Pacman.Left -> 180.0
+  | Pacman.Up -> 270.0
+  | Pacman.Down -> 90.0
+
 (** Draw Pac-Man at his current tile. *)
 let draw_pac pac =
   let px, py = Pacman.position pac in
-  draw_circle
-    ((px * tile_size) + (tile_size / 2))
-    ((py * tile_size) + (tile_size / 2))
-    10.0 Color.yellow
+  let cx = (px * tile_size) + (tile_size / 2) in
+  let cy = (py * tile_size) + (tile_size / 2) in
+
+  (* open and clos emouth *)
+  let t = Raylib.get_time () in
+  let max_open = 50.0 in
+  let mouth = max_open *. abs_float (sin (t *. 8.0)) in
+
+  (* determining which direction the mouth should face *)
+  let angle = facing_angle (Pacman.direction pac) in
+
+  (* creating wedge for mouth *)
+  let start_angle = angle +. (mouth /. 2.0) in
+  let end_angle = angle +. 360.0 -. (mouth /. 2.0) in
+
+  (* draws pacman *)
+  Raylib.draw_circle_sector
+    (Vector2.create (float cx) (float cy))
+    10.0 start_angle end_angle 32 Color.yellow
 
 (** Drawing out the shape of a regular ghost of a certain color *)
 let draw_ghost_helper tile_size gx gy color =
@@ -141,7 +169,7 @@ let draw_ghost_helper tile_size gx gy color =
   Raylib.draw_circle eye_right_x eye_y pupil_radius Color.black
 
 (** draw ghost*)
-let draw_ghost ghost =
+let draw_ghost (ghost, _speed, _timer) =
   let gx, gy = Ghost.position ghost in
   match (Ghost.is_eaten ghost, Ghost.is_frightened ghost) with
   | true, _ ->
@@ -157,16 +185,10 @@ let draw_ghost ghost =
   | false, false -> draw_ghost_helper tile_size gx gy (Ghost.color ghost)
 
 (* ===================================================== *)
-(*  Main Draw Function                                   *)
+(* Main Draw Function                                   *)
 (* ===================================================== *)
 
-(** Draw everything for one frame:
-    - Maze
-    - Pac-Man and ghosts (when appropriate)
-    - Score and lives
-    - Overlay UI depending on the current game state
-
-    This function only draws. It does not change the world. *)
+(** Draw everything for one frame. ... (omitted comment) ... *)
 let draw (w : world_view) =
   (* Update animations *)
   tick ();
@@ -188,6 +210,25 @@ let draw (w : world_view) =
   (* HUD *)
   draw_text (Printf.sprintf "Score: %d" w.score) 10 10 20 Color.white;
   draw_text (Printf.sprintf "Lives: %d" w.lives) 10 35 20 Color.white;
+
+  (* Draw ghost speed modes in the top-left *)
+  List.iteri
+    (fun i (_ghost, mode, timer) ->
+      (* 1. Get the mode as a string *)
+      let mode_text = string_of_speed_mode mode in
+
+      (* 2. Get the timer as a string, but only if it's active *)
+      let timer_text =
+        if timer > 0.0 then Printf.sprintf " (%.1fs)" timer else ""
+      in
+
+      (* 3. Combine them and draw *)
+      let text = Printf.sprintf "Ghost %d: %s%s" (i + 1) mode_text timer_text in
+      let y_pos = 60 + (i * 25) in
+      draw_text text 10 y_pos 20 Color.white)
+    w.ghosts;
+
+  (* --- END OF MODIFIED SECTION --- *)
 
   (* On-screen messages based on the phase of the game *)
   match w.state with

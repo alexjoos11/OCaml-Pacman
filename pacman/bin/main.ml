@@ -82,10 +82,10 @@ let () =
           | Some d -> { !world with pac = Pacman.set_direction !world.pac d }
           | None -> !world
           end
-      | Game_state.LevelComplete ->
+      | Game_state.LevelComplete | Game_state.GameOver ->
           if is_key_pressed Key.Space then Engine.initial_world maze pac ghosts
           else !world
-      | Game_state.PacDead | Game_state.GameOver ->
+      | Game_state.PacDead ->
           (* No input in dead/game-over states *)
           !world
     in
@@ -101,11 +101,15 @@ let () =
     begin_drawing ();
     clear_background Color.black;
 
+    let ghosts_with_data =
+      List.map (fun g -> (g, Ghost.get_speed g, Ghost.get_time g)) !world.ghosts
+    in
+
     let view =
       {
         Renderer.maze = !world.maze;
         pac = !world.pac;
-        ghosts = !world.ghosts;
+        ghosts = ghosts_with_data;
         score = !world.score;
         lives = !world.lives;
         state = !world.state;

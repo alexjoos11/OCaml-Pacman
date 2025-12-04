@@ -19,7 +19,7 @@
     - different ghost movement rules,
     - different starting conditions or constants.
 
-    This structure also allows unit tests to provide minimal stub modules (e.g.,
+    This structure also allows unit tests to provide minimal stub modules (e..g,
     a maze represented as [unit]) while letting the engine behave normally.
 
     By defining these module types in one place, the game engine functor can
@@ -65,6 +65,8 @@ module type GHOST = sig
   val respawn : t -> t
   val is_at_home : t -> bool
   val color : t -> Raylib.Color.t
+  val update_duration : t -> time:float -> t
+  val speed_factor : t -> float
 end
 
 module type CONSTANTS = sig
@@ -72,6 +74,9 @@ module type CONSTANTS = sig
   val ghost_start_positions : (int * int) list
   val starting_lives : int
   val pellet_score : int
+
+  (* These constants are now exposed to the engine *)
+  val fps : int
   val pacdead_pause_frames : int
   val movement_delay : int
   val ghost_move_cooldown : int
