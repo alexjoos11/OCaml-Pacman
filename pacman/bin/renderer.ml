@@ -198,16 +198,13 @@ let draw (w : world_view) =
 
   (* Entities depending on game phase *)
   begin match w.state with
-
-  | Game_state.Playing
-  | Game_state.LevelComplete
-  | Game_state.PacDead ->
+  | Game_state.Playing | Game_state.LevelComplete | Game_state.PacDead ->
       draw_pac w.pac;
       List.iter draw_ghost w.ghosts
   | Game_state.PowerUp ->
       draw_pac w.pac;
       List.iter draw_ghost w.ghosts
-  | Game_state.Intro | Game_state.GameOver -> ()
+  | Game_state.Intro | Game_state.GameOver _ -> ()
   end;
 
   (* HUD *)
@@ -253,8 +250,7 @@ let draw (w : world_view) =
 
       if info.update_high_score then
         blinking "NEW HIGH SCORE!" 370 35 Color.green;
-
       blinking "Press SPACE to restart" 260 25 Color.white
-  | Game_state.Playing ->
+  | Game_state.Playing | Game_state.PowerUp ->
       if w.speedup_timer > 0 then
         draw_centered_outline "SPEED UP!" 200 50 Color.yellow
