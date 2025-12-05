@@ -6,6 +6,13 @@ type game_state =
   | PacDead
       (** Pac-Man has collided with a ghost and will lose a life or end the
           game. *)
+  | PowerUp
+      (** Pac-Man has eaten a power pellet and is invincible; ghosts are
+          frightened. *)
   | LevelComplete
       (** All pellets have been eaten; the level transitions to a new layout. *)
-  | GameOver  (** No lives remain; the game ends. *)
+  | GameOver of {
+      final_score : int;
+      old_high_score : int;
+      update_high_score : bool;
+    }
