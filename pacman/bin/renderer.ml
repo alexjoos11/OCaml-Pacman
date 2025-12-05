@@ -198,9 +198,9 @@ let draw (w : world_view) =
 
   (* Entities depending on game *)
   begin match w.state with
-  | Game_state.Playing | Game_state.LevelComplete | Game_state.PacDead ->
-      draw_pac w.pac;
-      List.iter draw_ghost w.ghosts
+  | Game_state.Playing
+  | Game_state.LevelComplete
+  | Game_state.PacDead
   | Game_state.PowerUp ->
       draw_pac w.pac;
       List.iter draw_ghost w.ghosts

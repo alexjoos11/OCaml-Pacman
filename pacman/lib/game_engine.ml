@@ -51,17 +51,17 @@ struct
       unfreezes back to [Playing]. *)
   let respawn w =
     let px, py = Constants.pacman_start_pos in
-    let ghosts = List.map (fun g -> Ghost.respawn g) w.ghosts in
+    let ghosts' = List.map (fun g -> Ghost.respawn g) w.ghosts in
     {
       w with
       lives = w.lives - 1;
       pac = Pacman.create px py;
-      ghosts;
+      ghosts = ghosts';
       pacdead_timer = 0;
       state = Playing;
       move_cooldown = 0;
       powerup_timer = 0;
-      ghost_move_accumulators = List.map (fun _ -> 0.0) ghosts;
+      ghost_move_accumulators = List.map (fun _ -> 0.0) ghosts';
       frames_alive = 0;
       speedup_timer = 0;
     }
@@ -112,7 +112,6 @@ struct
           let p = Movement.move_pacman w.maze w.pac in
 
           (* Find how many 8.5-second blocks have elapsed *)
-
           let blocks =
             if frames_to_sec <= 0 then 0 else w.frames_alive / frames_to_sec
           in
@@ -178,7 +177,7 @@ struct
                 w.score + Constants.cherry_score,
                 ghosts',
                 w.powerup_timer,
-                Playing )
+                w.state )
           | _ -> failwith "Unexpected/unimplemented item type"
         else (w.maze, w.score, ghosts', w.powerup_timer, w.state)
       in
