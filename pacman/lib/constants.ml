@@ -46,6 +46,3 @@ let power_pellet_duration_frames = fps * 10
 
 (* Points per cherry *)
 let cherry_score = 100
-
-(* Number of seconds ghost will be in Slow mode *)
-let power_pellet_duration = 7.0
