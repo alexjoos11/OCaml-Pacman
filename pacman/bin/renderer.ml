@@ -44,12 +44,12 @@ let draw_centered text y font_size color =
     [color] then draws the text accordingly with a black outline around it. *)
 let draw_centered_outline text y font_size color =
   let x = center_x text font_size in
-  let color = Color.black in
+  let outline = Color.black in
   draw_text text (x - 2) (y - 2) font_size color;
   draw_text text (x + 2) (y - 2) font_size color;
   draw_text text (x - 2) (y + 2) font_size color;
   draw_text text (x + 2) (y + 2) font_size color;
-  draw_text text x y font_size color
+  draw_text text x y font_size outline
 
 (** [blinking] requires [text], [y] position, [frame_counter], and [rate] which
     are used to draw the text centered at the y position and flashing based on
@@ -278,4 +278,4 @@ let draw (w : world_view) =
       blinking "Press SPACE to restart" 260 25 Color.white
   | Game_state.Playing | Game_state.PowerUp ->
       if w.speedup_timer > 0 then
-        draw_centered_outline "SPEED UP!" 200 50 Color.yellow
+        draw_centered_outline "SPEED UP!" 200 50 Color.white
