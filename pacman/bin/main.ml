@@ -4,30 +4,27 @@ open Paclib
 (* Instantiate the concrete engine *)
 module Engine = Game_engine.Make (Maze) (Pacman) (Ghost) (Constants)
 
-(* Window config *)
+(** [width] is set to the window width's value in constants. *)
 let width = Constants.window_width
+(** [height] is set to the window height's value in constants. *)
 let height = Constants.window_height
+(** [fps] is set to the frames per second in constants. *)
 let fps = Constants.fps
 
 let () =
-  (* ========================================================== *)
-  (*  Window Initialization                                      *)
-  (* ========================================================== *)
   init_window width height "Pac-Man OCaml";
   set_target_fps fps;
 
-  (* ========================================================== *)
-  (*  Initial Game State                                         *)
-  (* ========================================================== *)
+  (* Initial Game State *)
 
-  (* Maze *)
+  (* Maze Creation *)
   let maze = Maze.create "data/classic.txt" in
 
-  (* Pac-Man *)
+  (* Initial Pac-Man's position and behavior *)
   let px, py = Constants.pacman_start_pos in
   let pac = Pacman.create px py in
 
-  (* Ghosts *)
+  (* Initial ghosts behavior *)
   let ghosts =
     let _, ghosts_rev =
       List.fold_left
@@ -47,25 +44,19 @@ let () =
   (* Start world in Intro state *)
   let world = ref (Engine.initial_world maze pac ghosts) in
 
-  (* ------------------------------------------------------------ *)
-  (*  Attempt direction change, block turns into walls    *)
-  (* ------------------------------------------------------------ *)
+  (* Attempt direction change, block turns into walls *)
   let safe_turn desired_dir =
     let trial_pac = Pacman.set_direction !world.pac desired_dir in
     let nx, ny = Pacman.next_position trial_pac in
     if Maze.is_wall !world.maze nx ny then
-      (* Reject turn — keep current direction *)
+      (* Reject turn and keep current direction *)
       Pacman.direction !world.pac
     else desired_dir
   in
 
-  (* ========================================================== *)
-  (*  Main Game Loop                                            *)
-  (* ========================================================== *)
+  (* Main Game Loop *)
   while not (window_should_close ()) do
-    (* ---------------------------------------------------------- *)
-    (* 1. Handle Player Input                                     *)
-    (* ---------------------------------------------------------- *)
+    (* Handle Player Input *)
     let world_after_input =
       match !world.state with
       | Game_state.Intro ->
@@ -78,34 +69,28 @@ let () =
             else if is_key_down Key.Right then Some (safe_turn Pacman.Right)
             else None
           in
-          begin
-            match dir_opt with
-            | Some d -> { !world with pac = Pacman.set_direction !world.pac d }
-            | None -> !world
+          begin match dir_opt with
+          | Some d -> { !world with pac = Pacman.set_direction !world.pac d }
+          | None -> !world
           end
       | Game_state.LevelComplete | Game_state.GameOver _ ->
           if is_key_pressed Key.Space then Engine.initial_world maze pac ghosts
           else !world
       | Game_state.PacDead ->
-          (* No input in dead/game-over states *)
+          (* No input in dead state. *)
           !world
     in
 
-    (* ---------------------------------------------------------- *)
-    (* 2. Engine Update                                           *)
-    (* ---------------------------------------------------------- *)
+    (* Update Engine *)
     world := Engine.update_world world_after_input;
 
-    (* ---------------------------------------------------------- *)
-    (* 3. Rendering                                               *)
-    (* ---------------------------------------------------------- *)
+    (* Rendering *)
     begin_drawing ();
     clear_background Color.black;
 
     let ghosts_with_data =
       List.map (fun g -> (g, Ghost.get_speed g, Ghost.get_time g)) !world.ghosts
     in
-
     let view =
       {
         Renderer.maze = !world.maze;
@@ -121,8 +106,4 @@ let () =
 
     end_drawing ()
   done;
-
-  (* ========================================================== *)
-  (*  Cleanup                                                    *)
-  (* ========================================================== *)
   close_window ()
