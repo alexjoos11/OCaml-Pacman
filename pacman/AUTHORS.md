@@ -3,8 +3,11 @@ Alexander Joos (aaj46)
 Kirti Bagepalli (kb593)
 Eli Slavin (ebs227)
 
-Ocaml.org
-    https://ocaml.org/p/tsdl/1.2.0/doc/tsdl/Tsdl/Sdl/Window/index.html - learning how to use tsdl 
+Youtube
+    https://www.youtube.com/watch?time_continue=929&v=ataGotQ7ir8&embeds_referring_euri=https%3A%2F%2Fwww.reddit.com%2F - learning how Blinky AI works for ghosts in Pac-Man game
+
 
 ChatGPT
-    - helped with some of the nuances of sdl like the flags and things with ~
+    - Aided in giving ideas for test casees to implement to reach the 80% with bisect
+    - Gave pseudocode outlines with comments for features we wanted to incorporate
+    - Help us to identify complicated bugs
