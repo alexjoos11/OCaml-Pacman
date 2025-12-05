@@ -547,6 +547,100 @@ let test_respawn_after_pacdead_timer _ =
   assert_equal StubConstants.pacman_start_pos (StubPacman.position w'.pac)
 
 (* ------------------------------------------------------------- *)
+(* DIRECT MOVEMENT LOGIC STUBS                                   *)
+(* ------------------------------------------------------------- *)
+
+(* A maze where we can define exactly where the walls are via a list of
+   coordinates *)
+module ConfigurableMaze = struct
+  type t = (int * int) list (* The maze state is just a list of wall (x,y) *)
+
+  type item =
+    | Pellet
+    | PowerPellet
+    | Cherry
+
+  type tile =
+    | Wall
+    | Item of item
+    | Empty
+
+  let is_wall walls x y = List.mem (x, y) walls
+
+  (* Required interface dummies *)
+  let item_at _ _ _ = None
+  let eat_item m _ _ = m
+  let items_exist _ = false
+  let pellet_at _ _ _ = false
+  let eat_pellet m _ _ = m
+  let pellets_exist _ = false
+  let is_power_pellet _ _ _ = false
+  let create_for_tests _ = []
+end
+
+(* A ghost where we can manually set the "next_position" logic *)
+module TargetGhost = struct
+  type t = {
+    x : int;
+    y : int;
+    target_x : int;
+    target_y : int;
+  }
+
+  let create x y _ = { x; y; target_x = x; target_y = y }
+  let create_with_target x y tx ty = { x; y; target_x = tx; target_y = ty }
+  let position g = (g.x, g.y)
+
+  (* Force the ghost to want to go to our specific target, regardless of
+     Pacman *)
+  let next_position g ~pac_pos:_ = (g.target_x, g.target_y)
+  let move_to g nx ny = { g with x = nx; y = ny }
+
+  (* Dummies *)
+  let is_frightened _ = false
+  let is_eaten _ = false
+  let color _ = Raylib.Color.red
+  let respawn g = g
+  let set_frightened g _ = g
+  let set_eaten g _ = g
+  let is_at_home _ = false
+  let update_duration g ~time:_ = g
+  let speed_factor _ = 1.0
+end
+
+module MovementTester =
+  Paclib.Movement.Make (ConfigurableMaze) (StubPacman) (TargetGhost)
+    (StubConstants)
+
+(* ------------------------------------------------------------- *)
+(* DIRECT MOVEMENT TESTS                                         *)
+(* ------------------------------------------------------------- *)
+
+let test_ghost_fallback_on_wall _ =
+  let walls = [ (11, 10); (10, 9); (9, 10) ] in
+  (* FIX: Use the custom creator here *)
+  let ghost = TargetGhost.create_with_target 10 10 11 10 in
+  let ghost' = MovementTester.move_ghost walls ghost (0, 0) in
+  let gx, gy = TargetGhost.position ghost' in
+  assert_equal (10, 11) (gx, gy)
+
+let test_ghost_stuck_if_surrounded _ =
+  let walls = [ (11, 10); (9, 10); (10, 11); (10, 9) ] in
+  (* FIX: Use the custom creator here *)
+  let ghost = TargetGhost.create_with_target 10 10 11 10 in
+  let ghost' = MovementTester.move_ghost walls ghost (0, 0) in
+  assert_equal (10, 10) (TargetGhost.position ghost')
+
+let test_ghost_random_fallback _ =
+  let walls = [ (11, 10); (9, 10) ] in
+  (* FIX: Use the custom creator here *)
+  let ghost = TargetGhost.create_with_target 10 10 11 10 in
+  let ghost' = MovementTester.move_ghost walls ghost (0, 0) in
+  let gx, gy = TargetGhost.position ghost' in
+  let valid = [ (10, 11); (10, 9) ] in
+  assert_bool "Ghost did not move to a valid fallback" (List.mem (gx, gy) valid)
+
+(* ------------------------------------------------------------- *)
 (* SUITE                                                        *)
 (* ------------------------------------------------------------- *)
 
@@ -584,6 +678,9 @@ let suite =
          "pac frozen during pacdead" >:: test_pac_is_frozen_during_pacdead;
          "ghosts frozen during pacdead" >:: test_ghosts_frozen_during_pacdead;
          "respawn after timer" >:: test_respawn_after_pacdead_timer;
+         "ghost fallback on wall" >:: test_ghost_fallback_on_wall;
+         "ghost stuck surrounded" >:: test_ghost_stuck_if_surrounded;
+         "ghost random fallback" >:: test_ghost_random_fallback;
        ]
 
 let _ = run_test_tt_main suite

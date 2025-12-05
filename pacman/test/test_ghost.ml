@@ -134,6 +134,29 @@ let test_speed_factor_by_mode _ =
     (G.speed_factor g_paused)
 
 (* ------------------------------------------------------------- *)
+(*  testing next positions                                       *)
+(* ------------------------------------------------------------- *)
+let test_mode_transitions _ =
+  let g = G.create 0 0 Ai.defaulty in
+  let g_fright = G.set_frightened g true in
+  assert_bool "Should be frightened" (G.is_frightened g_fright);
+
+  let g_attack = G.set_frightened g_fright false in
+  assert_bool "Should return to Attack mode" (not (G.is_frightened g_attack));
+  assert_bool "Should not be eaten" (not (G.is_eaten g_attack));
+
+  let g_eaten = G.set_eaten g true in
+  assert_bool "Should be eaten" (G.is_eaten g_eaten);
+  assert_bool "Should not be frightened" (not (G.is_frightened g_eaten));
+
+  let g_eaten_stay = G.set_frightened g_eaten false in
+  assert_bool "Eaten ghost should ignore set_frightened false"
+    (G.is_eaten g_eaten_stay);
+
+  let g_restored = G.set_eaten g_eaten false in
+  assert_bool "Should no longer be eaten" (not (G.is_eaten g_restored))
+
+(* ------------------------------------------------------------- *)
 (*  Suite                                                        *)
 (* ------------------------------------------------------------- *)
 
@@ -159,6 +182,7 @@ let suite =
          "update_duration chains modes" >:: test_update_duration_chains_modes;
          (* speed_factor *)
          "speed_factor by mode" >:: test_speed_factor_by_mode;
+         "mode transitions" >:: test_mode_transitions;
        ]
 
 let () = run_test_tt_main suite
