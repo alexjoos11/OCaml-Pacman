@@ -3,8 +3,10 @@ Alexander Joos (aaj46)
 Kirti Bagepalli (kb593)
 Eli Slavin (ebs227)
 
-Ocaml.org
-    https://ocaml.org/p/tsdl/1.2.0/doc/tsdl/Tsdl/Sdl/Window/index.html - learning how to use tsdl 
+https://ocaml.org/p/raylib/0.5.1/doc/index.html - basis for using Raylib
 
 ChatGPT
-    - helped with some of the nuances of sdl like the flags and things with ~
+-Helped with understanding the nuances of Raylib
+-Aided in giving ideas for tests cases to implement to reach the 80% bisect
+-Gave pseudocode outlines with comments for features we want to incorporate
+-Help us to identify complicated bugs by providing it with a section of code to help pinpoint where the error was coming from
