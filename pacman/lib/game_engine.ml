@@ -74,7 +74,7 @@ struct
 
     (* Want speedup to happen every 7.5 seconds. this converts frames to
        seconds *)
-    let frames_to_sec = int_of_float (7.5 *. float_of_int Constants.fps) in
+    let frames_to_sec = int_of_float (8.5 *. float_of_int Constants.fps) in
 
     (* Update speedup message timer every frame *)
     let w =
@@ -111,7 +111,8 @@ struct
         else
           let p = Movement.move_pacman w.maze w.pac in
 
-          (* Find how many 7.5-second blocks have elapsed *)
+          (* Find how many 8.5-second blocks have elapsed *)
+
           let blocks =
             if frames_to_sec <= 0 then 0 else w.frames_alive / frames_to_sec
           in
