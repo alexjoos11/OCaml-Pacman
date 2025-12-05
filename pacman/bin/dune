@@ -1,4 +1,5 @@
 (executable
  (public_name pacman)
  (name main)(libraries paclib raylib)
+ (instrumentation (backend bisect_ppx))
  )
