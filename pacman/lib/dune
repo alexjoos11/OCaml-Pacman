@@ -1,10 +1,6 @@
 (library
  (name paclib)
-<<<<<<< Updated upstream
  (libraries raylib)
  (instrumentation (backend bisect_ppx)))
-=======
- (libraries raylib)(instrumentation (backend bisect_ppx)))
->>>>>>> Stashed changes
 
 
