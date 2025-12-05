@@ -27,8 +27,14 @@ desc: >
   Our project is the classic Pacman game recreated using OCaml. The interface
   allows users is to control the movement of the Pacman character around a 
   maze with ghosts chasing the character. The Pacman character moves around 
-  the maze trying to collect the coins without being caught by a ghost.
+  the maze trying to collect the pellets, power pellets, and cherries 
+  without being caught by a ghost.
 
   The Pacman has three lives represented as hearts on the screen and each
   time the Pacman character is caught by a ghost one of the hearts is broken.
   Once all three hearts are broken the game ends.
+
+  The ghosts' speed cycles through different modes including fast, slow, regular, 
+  and paused. Pac-Man's speed also increases as the game continues. There are
+  is an additional feature where Pac-Man is able to eat a ghost after gaining
+  powers from eating a power pellet.
