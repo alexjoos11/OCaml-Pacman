@@ -3,11 +3,15 @@ Alexander Joos (aaj46)
 Kirti Bagepalli (kb593)
 Eli Slavin (ebs227)
 
+
+OCaml.org
+  https://ocaml.org/p/raylib/0.5.1/doc/index.html - basis for using Raylib
 Youtube
     https://www.youtube.com/watch?time_continue=929&v=ataGotQ7ir8&embeds_referring_euri=https%3A%2F%2Fwww.reddit.com%2F - learning how Blinky AI works for ghosts in Pac-Man game
-
-
+    
 ChatGPT
-    - Aided in giving ideas for test casees to implement to reach the 80% with bisect
-    - Gave pseudocode outlines with comments for features we wanted to incorporate
-    - Help us to identify complicated bugs
+-Helped with understanding the nuances of Raylib
+-Aided in giving ideas for tests cases to implement to reach the 80% bisect
+-Gave pseudocode outlines with comments for features we want to incorporate
+-Help us to identify complicated bugs by providing it with a section of code to help pinpoint where the error was coming from
+
