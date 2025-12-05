@@ -2,8 +2,11 @@ open OUnit2
 open Paclib.High_score
 
 let filename = "high_score.dat"
+
+(** [remove_score_file] is a helper file that removes the file if it exists *)
 let remove_score_file () = if Sys.file_exists filename then Sys.remove filename
 
+(* Test for correct file *)
 let with_clean_file test_fun _ctxt =
   remove_score_file ();
   try
@@ -13,30 +16,36 @@ let with_clean_file test_fun _ctxt =
     remove_score_file ();
     raise e
 
-let test_load_no_file () = assert_equal 0 (load_score ())
+(* Test for no file existing *)
+let test_load_no_file () = assert_equal ~printer:string_of_int 0 (load_score ())
 
+(* Test for saving the first high score value *)
 let test_save_and_load () =
   let score = 500 in
   save_score score;
-  assert_equal score (load_score ())
+  assert_equal ~printer:string_of_int score (load_score ())
 
+(* Test for rewriting a new high score value *)
 let test_overwrite_score () =
   save_score 100;
   Unix.sleepf 0.05;
   save_score 9999;
   assert_equal ~printer:string_of_int 9999 (load_score ())
 
+(* Test for when there is a corrupt file *)
 let test_corrupt_file () =
   let output = open_out filename in
   output_string output "Not a number";
   close_out output;
-  assert_equal 0 (load_score ())
+  assert_equal ~printer:string_of_int 0 (load_score ())
 
+(* Test for when there is an empty file *)
 let test_load_empty_file () =
   let output = open_out filename in
   close_out output;
-  assert_equal 0 (load_score ())
+  assert_equal ~printer:string_of_int 0 (load_score ())
 
+(* Test Suite *)
 let suite =
   "high_score tests"
   >::: [
