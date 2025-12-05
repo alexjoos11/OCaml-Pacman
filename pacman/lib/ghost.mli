@@ -1,4 +1,4 @@
-(* speed represents the different modes the ghosts are and each mode is a
+(* [speed] represents the different modes the ghosts are and each mode is a
    different speed the ghosts move at. *)
 type speed =
   | Fast
@@ -8,13 +8,11 @@ type speed =
 
 type t
 (* Abstract ghost state. This type represents a single ghost’s position and any
-   internal state needed for its movement behavior. The internal representation
-   is hidden from the engine. *)
+   internal state needed for its movement behavior.*)
 
 val create : int -> int -> Ai.ai -> t
-(** [create x y ai] constructs a new unfrightened ghost located at tile
-    [(x, y)]. The movement behavior of the ghost is determined entirely by the
-    [next_position] function. *)
+(** [create x y ai] constructs a new ghost located at the [x] and [y] position.
+*)
 
 val position : t -> int * int
 (** [position g] requires requires the ghost state [g] of type t and returns the
@@ -31,8 +29,7 @@ val next_position : t -> pac_pos:int * int -> int * int
 val move_to : t -> int -> int -> t
 (** [move_to g x y] returns a new ghost state positioned at tile [(x, y)]. The
     engine calls this only after determining that the ghost’s intended move is
-    legal. Ghosts themselves do not perform wall checks or decide if movement is
-    allowed. *)
+    legal. *)
 
 val set_frightened : t -> bool -> t
 (** [set_frightened g frightened] returns a new ghost identical to [g] but with
@@ -78,19 +75,10 @@ val update_duration : t -> time:float -> t
 (** [update_duration] requires the ghost state [g] of type t and the time that
     has passed since the last update [time]. [update_duration] returns a new
     ghost state and if the timer has expired the ghost state's speed will change
-    to [Regular] speed. If the timer has not expired the timer will be reduced
-    by [time] and the speed mode will remain the same. *)
+    to the next corresponding speed. If the timer has not expired the timer will
+    be reduced by [time] and the speed mode will remain the same. *)
 
 val speed_factor : t -> float
 (** [speed_factor g] returns the movement multiplier for the ghost [g]'s current
-    speed mode.
-
-    The mapping is:
-    - [Fast] → 2.0
-    - [Regular] → 1.0
-    - [Slow] → 0.5
-    - [Paused] → 0.0
-
-    The game engine uses this multiplier to scale the ghost’s internal movement
-    accumulator, causing ghosts in different modes to move at different rates.
-*)
+    speed mode. [Fast] is 2.0, [Regular] is 1.0, [Slow] is 0.5, and [Paused] is
+    0.0. This multiplier is used to determine ghosts' movement. *)

@@ -1,16 +1,12 @@
-(** The mode type represents the behavioral state of a ghost in Pac-Man.
-    - [Attack]: The ghost actively pursues Pac-Man according to its hunting
-      strategy.
-    - [Frightened]: The ghost is vulnerable and flees from Pac-Man after
-      consuming a power pellet.
-    - [Eaten]: The ghost has been consumed by Pac-Man and is regenerating at the
-      ghost house. *)
+(** The mode type represents the state of a ghost. [Attack] is when the ghost
+    actively pursues Pac-Man. [Frightened] is when the ghost is vulnerable and
+    runs from Pac-Man after Pac-Man has eaten a power pellet. [Eaten] is when
+    the ghost has been eaten by Pac-Man. *)
 type mode =
   | Attack
   | Frightened
   | Eaten
 
-(** The speed type represents how fast the ghost is currently moving*)
 type speed =
   | Fast
   | Regular
@@ -72,6 +68,8 @@ let is_at_home g = (g.x, g.y) = (g.home_x, g.home_y)
 let respawn g = { g with x = g.home_x; y = g.home_y; mode = Attack }
 let color g = g.ai.color
 
+(** This helper function maps the next speed mode of the ghost based on the
+    ghost's current speed mode. *)
 let next_speed current =
   match current with
   | Regular -> Fast
@@ -83,7 +81,7 @@ let get_time g = g.timer
 let get_speed g = g.speed
 let set_speed g speed duration = { g with speed; timer = duration }
 
-(** HELPER: to switch modes**)
+(** This is a helper function for switching the modes of ghosts. *)
 let switch_speed g = { g with speed = next_speed g.speed; timer = 5.0 }
 
 let update_duration g ~time =

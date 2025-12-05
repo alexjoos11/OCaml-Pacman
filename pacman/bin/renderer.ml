@@ -5,10 +5,9 @@ let tile_size = Constants.tile_size
 let window_width = Constants.window_width
 let window_height = Constants.window_height
 
-(* ===================================================== *)
-(* Types                                                *)
-(* ===================================================== *)
-
+(* [world_view] represents the overall state of the game environment for
+   rendering. This includes the Pacman, ghosts, maze layout, and statistics of
+   the current game. *)
 type world_view = {
   maze : Maze.t;
   pac : Pacman.t;
@@ -18,54 +17,55 @@ type world_view = {
   state : Game_state.game_state;
   speedup_timer : int;
 }
-(** [world_view] is a lightweight, read-only snapshot of the game world. ...
-    (omitted comment) ... *)
 
-(* ===================================================== *)
-(* Frame Counter                                        *)
-(* ===================================================== *)
-
-(** A simple frame counter for small UI animations (blinking text, pulsing
-    title, etc.). *)
+(** [frame_counter] is for UI animations including blinking text, pulsing title,
+    etc. *)
 let frame_counter = ref 0
 
+(** [tick] increments the global frame counter [frame_counter] by 1 and is
+    called once for every frame update. *)
 let tick () = frame_counter := !frame_counter + 1
 
-(* ===================================================== *)
-(* UI Helper Functions                                  *)
-(* ===================================================== *)
+(* UI Helper Functions *)
 
-(** Compute the x-position needed to horizontally center text. *)
+(** [center_text] requires the [text] and [font_size] to be displayed and
+    returns the computed x-coordinate required to horizontally center the text
+    in the window_width. *)
 let center_x text font_size =
   let w = measure_text text font_size in
   (window_width - w) / 2
 
-(** Draw text horizontally centered. *)
+(** [draw_centered] requires the [text], [y] position, [font_size], and [color]
+    of the text to be displayed and draws the text accordingly. *)
 let draw_centered text y font_size color =
   draw_text text (center_x text font_size) y font_size color
 
-(** Draw centered text with a black outline for a retro arcade feel. *)
+(** [draw_centered_outline] requires [text], [y] position, [font_size], and
+    [color] then draws the text accordingly with a black outline around it. *)
 let draw_centered_outline text y font_size color =
   let x = center_x text font_size in
-  let o = Color.black in
-  draw_text text (x - 2) (y - 2) font_size o;
-  draw_text text (x + 2) (y - 2) font_size o;
-  draw_text text (x - 2) (y + 2) font_size o;
-  draw_text text (x + 2) (y + 2) font_size o;
+  let color = Color.black in
+  draw_text text (x - 2) (y - 2) font_size color;
+  draw_text text (x + 2) (y - 2) font_size color;
+  draw_text text (x - 2) (y + 2) font_size color;
+  draw_text text (x + 2) (y + 2) font_size color;
   draw_text text x y font_size color
 
-(** Show text that appears and disappears on a timer. *)
+(** [blinking] requires [text], [y] position, [frame_counter], and [rate] which
+    are used to draw the text centered at the y position and flashing based on
+    the frame counter and rate values. *)
 let blinking ?(rate = 30) text y size color =
   if !frame_counter / rate mod 2 = 0 then draw_centered text y size color
 
-(** Draw text that gently moves up and down for a “pulsing” effect. *)
+(** [pulsing_title] requires [text], [base_y], [size], and [color] and draws the
+    text accordingly which oscillates around the base y position *)
 let pulsing_title text base_y size color =
   let t = float_of_int !frame_counter /. 20.0 in
   let offset = int_of_float (sin t *. 5.0) in
   draw_centered_outline text (base_y + offset) size color
 
-(** [string_of_speed_mode mode] converts a speed mode into a printable string.
-*)
+(** [string_of_speed_mode] requires the mode of the ghost and returns the string
+    representation of the ghost's mode. *)
 let string_of_speed_mode mode =
   match mode with
   | Ghost.Fast -> "Fast"
@@ -73,10 +73,8 @@ let string_of_speed_mode mode =
   | Ghost.Slow -> "Slow"
   | Ghost.Paused -> "Paused"
 
-(* ===================================================== *)
-(* Maze & Entity Rendering                              *)
-(* ===================================================== *)
-
+(** [draw_cherry] requires the [x] position, [y] position, and [tile_size] and
+    renders the cherry at the x and y position scaled to fit a grid tile. *)
 let draw_cherry x y tile_size =
   let cx = (x * tile_size) + (tile_size / 2) in
   let cy = (y * tile_size) + (tile_size / 2) in
@@ -95,7 +93,8 @@ let draw_cherry x y tile_size =
 
   draw_circle cx (cy - stem_len - 2) (float_of_int (tile_size / 12)) Color.green
 
-(** Draw the maze grid, walls, power pellets, and pellets. *)
+(** [draw_maze] requires [maze] which is the maze's grid and draws the walls,
+    pellets, power pellets, and fruit items. *)
 let draw_maze maze =
   let w = Maze.width maze in
   let h = Maze.height maze in
@@ -119,37 +118,41 @@ let draw_maze maze =
     done
   done
 
-(* determines position of mouth *)
+(** [facing_angle] maps the Pacman's direction to a rotation angle (degrees) to
+    be used for animating Pacman's change in direction. *)
 let facing_angle = function
   | Pacman.Right -> 0.0
   | Pacman.Left -> 180.0
   | Pacman.Up -> 270.0
   | Pacman.Down -> 90.0
 
-(** Draw Pac-Man at his current tile. *)
+(** [draw_pac] requires [pac] which represents Pacman's state and renders Pacman
+    at that position, including the Pacman's mouth opening and closing. *)
 let draw_pac pac =
   let px, py = Pacman.position pac in
   let cx = (px * tile_size) + (tile_size / 2) in
   let cy = (py * tile_size) + (tile_size / 2) in
 
-  (* open and clos emouth *)
+  (* Opening and closing of Pacman's mouth *)
   let t = Raylib.get_time () in
   let max_open = 50.0 in
   let mouth = max_open *. abs_float (sin (t *. 8.0)) in
 
-  (* determining which direction the mouth should face *)
+  (* Angle for Pacman's mouth direction *)
   let angle = facing_angle (Pacman.direction pac) in
 
-  (* creating wedge for mouth *)
+  (* Create the wedge for the mouth *)
   let start_angle = angle +. (mouth /. 2.0) in
   let end_angle = angle +. 360.0 -. (mouth /. 2.0) in
 
-  (* draws pacman *)
+  (* Draw Pacman *)
   Raylib.draw_circle_sector
     (Vector2.create (float cx) (float cy))
     10.0 start_angle end_angle 32 Color.yellow
 
-(** Drawing out the shape of a regular ghost of a certain color *)
+(** [draw_ghost_helper] requires [tile_size], [gx], [gy], and [color] and draws
+    the ghost and it's features at the gx and gy positions with the correct
+    color. *)
 let draw_ghost_helper tile_size gx gy color =
   let x = gx * tile_size in
   let y = gy * tile_size in
@@ -168,7 +171,8 @@ let draw_ghost_helper tile_size gx gy color =
   Raylib.draw_circle eye_left_x eye_y pupil_radius Color.black;
   Raylib.draw_circle eye_right_x eye_y pupil_radius Color.black
 
-(** draw ghost*)
+(** [draw_ghost] requires a [ghost] state, [_speed], and [_timer] which renders
+    the ghost changing its appearance based on its state. *)
 let draw_ghost (ghost, _speed, _timer) =
   let gx, gy = Ghost.position ghost in
   match (Ghost.is_eaten ghost, Ghost.is_frightened ghost) with
@@ -184,11 +188,7 @@ let draw_ghost (ghost, _speed, _timer) =
   | false, true -> draw_ghost_helper tile_size gx gy Color.blue
   | false, false -> draw_ghost_helper tile_size gx gy (Ghost.color ghost)
 
-(* ===================================================== *)
-(* Main Draw Function                                   *)
-(* ===================================================== *)
-
-(** Draw everything for one frame. ... (omitted comment) ... *)
+(** [draw] requires [w] the world view and renders the entire game. *)
 let draw (w : world_view) =
   (* Update animations *)
   tick ();
@@ -196,7 +196,7 @@ let draw (w : world_view) =
   (* Background maze *)
   draw_maze w.maze;
 
-  (* Entities depending on game phase *)
+  (* Entities depending on game *)
   begin match w.state with
   | Game_state.Playing | Game_state.LevelComplete | Game_state.PacDead ->
       draw_pac w.pac;
@@ -207,30 +207,22 @@ let draw (w : world_view) =
   | Game_state.Intro | Game_state.GameOver _ -> ()
   end;
 
-  (* HUD *)
   draw_text (Printf.sprintf "Score: %d" w.score) 10 10 20 Color.white;
   draw_text (Printf.sprintf "Lives: %d" w.lives) 10 35 20 Color.white;
 
   (* Draw ghost speed modes in the top-left *)
   List.iteri
     (fun i (_ghost, mode, timer) ->
-      (* 1. Get the mode as a string *)
       let mode_text = string_of_speed_mode mode in
-
-      (* 2. Get the timer as a string, but only if it's active *)
       let timer_text =
         if timer > 0.0 then Printf.sprintf " (%.1fs)" timer else ""
       in
-
-      (* 3. Combine them and draw *)
       let text = Printf.sprintf "Ghost %d: %s%s" (i + 1) mode_text timer_text in
       let y_pos = 60 + (i * 25) in
       draw_text text 10 y_pos 20 Color.white)
     w.ghosts;
 
-  (* --- END OF MODIFIED SECTION --- *)
-
-  (* On-screen messages based on the phase of the game *)
+  (* On-screen messages based on the game phase *)
   match w.state with
   | Game_state.Intro ->
       let top_box_width = 500 in

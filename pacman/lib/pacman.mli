@@ -1,3 +1,4 @@
+(** This type defines the four directions that Pacman can move. *)
 type direction =
   | Up
   | Down
@@ -5,32 +6,32 @@ type direction =
   | Right
 
 type t
-(** Abstract Pac-Man state. This type hides the internal representation of
-    Pac-Man’s position and movement state from the engine. *)
+(** Abstract Pac-Man state which hides the internal representation of Pac-Man’s
+    position and movement state from the game engine. *)
 
 val create : int -> int -> t
-(** [create x y] constructs a new Pac-Man located at tile [(x, y)] with an
-    initial default direction (implementation-defined). *)
+(** [create] constructs a new Pac-Man located at tile [(x, y)] with an initial
+    default direction. *)
 
 val direction : t -> direction
-(*returns direction*)
+(** [direction] returns Pac-man's direction of movemement. *)
 
 val set_direction : t -> direction -> t
-(** [set_direction pac dir] returns a new Pac-Man state where Pac-Man’s current
-    direction is updated to [dir]. This only changes the direction; it does
-    *not* move Pac-Man on the map. *)
+(** [set_direction] requires Pac-Man's current state [pac] and a direction [dir]
+    and returns a new Pac-Man state where Pac-Man’s current direction is updated
+    to [dir]. *)
 
 val position : t -> int * int
-(** [position pac] returns Pac-Man’s current tile coordinates as [(x, y)]. *)
+(** [position] requires Pac-Man's current state [pac] and returns Pac-Man’s
+    current tile coordinates as [(x, y)]. *)
 
 val next_position : t -> int * int
-(** [next_position pac] computes the tile [(nx, ny)] that Pac-Man *intends* to
-    move to based solely on his current direction.
-
-    This does *not* check walls, ghosts, pellets, or any other game rules. It is
-    simply the one-tile step in Pac-Man’s current direction. *)
+(** [next_position] requires Pac-Man's current state [pac] and computes the tile
+    [(nx, ny)] that Pac-Man *intends* to move to based solely on his current
+    direction. *)
 
 val move_to : t -> int -> int -> t
-(** [move_to pac x y] returns a new Pac-Man state positioned at tile [(x, y)].
-    The game engine uses this after deciding whether movement is legal (e.g.,
-    checking for walls). Pac-Man does not decide this himself. *)
+(** [move_to] requires Pac-Man's position [pac] and the [x] and [y] intended
+    position and returns a new Pac-Man state positioned at tile [(x, y)]. The
+    game engine uses this after deciding whether movement is legal (e.g.,
+    checking for walls). *)

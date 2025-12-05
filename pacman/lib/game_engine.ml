@@ -9,10 +9,6 @@ module Make
 struct
   module Movement = Movement.Make (Maze) (Pacman) (Ghost) (Constants)
 
-  (* ============================================================= *)
-  (* WORLD STATE RECORD                                            *)
-  (* ============================================================= *)
-
   type world = {
     maze : Maze.t;  (** Immutable maze state. *)
     pac : Pacman.t;  (** Pac-Man's position and direction. *)
@@ -28,6 +24,7 @@ struct
     speedup_timer : int;
   }
 
+  (** Set the default values for when the game begins. *)
   let initial_world maze pac ghosts =
     {
       maze;
@@ -49,9 +46,9 @@ struct
     | Intro -> { w with state = Playing }
     | _ -> w
 
-  (** Respawns Pac-Man and all ghosts to their original starting positions.
-      Lives decrease by 1; cooldowns reset; world unfreezes back to [Playing].
-  *)
+  (** Pac-Man is respawned and all ghosts to their original starting positions.
+      The number of lives is decreased by 1, cooldowns reset, and world
+      unfreezes back to [Playing]. *)
   let respawn w =
     let px, py = Constants.pacman_start_pos in
     let ghosts = List.map (fun g -> Ghost.respawn g) w.ghosts in
@@ -69,32 +66,33 @@ struct
       speedup_timer = 0;
     }
 
-  (** One frame of gameplay. Movement is tile-based and throttled by independent
-      cooldowns. Collision is checked before and after movement. *)
+  (** One frame of gameplay logic where movement is tile-based and collision is
+      checked before and after movement. *)
   let update_playing w =
-    (*count frames that pacman has been alive*)
+    (* Count frames that Pacman has been alive *)
     let w = { w with frames_alive = w.frames_alive + 1 } in
 
-    (*want speedup to happen every 7.5 seconds. this converts frames to
-      seconds*)
+    (* Want speedup to happen every 7.5 seconds. this converts frames to
+       seconds *)
     let frames_to_sec = int_of_float (7.5 *. float_of_int Constants.fps) in
 
-    (* update speedup message timer every frame *)
+    (* Update speedup message timer every frame *)
     let w =
       if
         frames_to_sec > 0 && w.frames_alive > 0
         && w.frames_alive mod frames_to_sec = 0
       then
-        (*means we hit a multiple of 7.5 seconds – show "SPEED UP!" for 1
-          second*)
+        (* This means we hit a multiple of 7.5 seconds so show "SPEED UP!" for 1
+           second *)
         { w with speedup_timer = Constants.fps }
       else if w.speedup_timer > 0 then
-        (*used for countdown message. on screen for fps frames = 1 second*)
+        (* Used for countdown message and is on screen for fps frames = 1
+           second *)
         { w with speedup_timer = w.speedup_timer - 1 }
       else w
     in
 
-    (* ---------------- Early collision BEFORE movement ---------------- *)
+    (* Collision occurs before movement *)
     let pac_pos = Pacman.position w.pac in
     let hit_immediate =
       match w.state with
@@ -107,18 +105,18 @@ struct
     if hit_immediate then
       { w with state = PacDead; pacdead_timer = Constants.pacdead_pause_frames }
     else
-      (* Pac-Man movement: either decrement cooldown OR move now *)
+      (* Pac-Man movement move now or decrement the cooldown *)
       let pac', move_cooldown' =
         if w.move_cooldown > 0 then (w.pac, w.move_cooldown - 1)
         else
           let p = Movement.move_pacman w.maze w.pac in
 
-          (* How many 7.5-second blocks have elapsed *)
+          (* Find how many 7.5-second blocks have elapsed *)
           let blocks =
             if frames_to_sec <= 0 then 0 else w.frames_alive / frames_to_sec
           in
 
-          (*find the new delay. Delay cannot be less than 1*)
+          (* Find the new delay which can't be less than 1 *)
           let new_delay =
             let del = Constants.movement_delay - blocks in
             if del <= 0 then 1 else del
@@ -127,13 +125,13 @@ struct
           (p, new_delay)
       in
 
-      (* --- Update ghost timers --- *)
+      (* Update the ghost timers *)
       let time = 1.0 /. float_of_int Constants.fps in
       let time_update = List.map (Ghost.update_duration ~time) w.ghosts in
       let move_threshold = float_of_int Constants.ghost_move_cooldown in
       let combined = List.combine time_update w.ghost_move_accumulators in
 
-      (* Ghost movement: same pattern, but separate timer *)
+      (* Ghost movement with a separate timer *)
       let process_list =
         List.map
           (fun (g, accum) ->
@@ -153,21 +151,21 @@ struct
       in
       let ghosts', ghost_accumulators' = List.split process_list in
 
-      (* ---------------- Pellet Eating ---------------- *)
+      (* Eating pellets *)
       let px', py' = Pacman.position pac' in
       let maze', score', ghosts', powerup_timer', state' =
         let item_type = Maze.item_at w.maze px' py' in
         if item_type <> None then
           match item_type with
-          (* Eating a normap Pellet: update score, maze*)
+          (* Eat a normal pellet so update score and maze *)
           | Some Pellet ->
               ( Maze.eat_item w.maze px' py',
                 w.score + Constants.pellet_score,
                 ghosts',
                 w.powerup_timer,
                 w.state )
-          (* Eating a Power Pellet: update MAZE, SCORE, GHOSTS, POWERUP TIMER,
-             STATE*)
+          (* Eat a Power Pellet to update MAZE, SCORE, GHOSTS, POWERUP TIMER,
+             and STATE *)
           | Some PowerPellet ->
               ( Maze.eat_item w.maze px' py',
                 w.score + Constants.power_pellet_score,
@@ -180,17 +178,16 @@ struct
                 ghosts',
                 w.powerup_timer,
                 Playing )
-          (* New item: update ...*)
           | _ -> failwith "Unexpected/unimplemented item type"
         else (w.maze, w.score, ghosts', w.powerup_timer, w.state)
       in
 
-      (* ---------------- Level Complete ---------------- *)
+      (* Level has been completed *)
       let state' =
         if not (Maze.items_exist maze') then LevelComplete else state'
       in
 
-      (* ---------------- Collision AFTER movement ---------------- *)
+      (* Collision occurs after moving *)
       let pac_hurt, score', ghosts' =
         match state' with
         | PowerUp ->
@@ -229,7 +226,7 @@ struct
         if final_state = PacDead then Constants.pacdead_pause_frames else 0
       in
 
-      (* ---------------- Build next world ---------------- *)
+      (* Build the next world *)
       {
         w with
         pac = pac';
@@ -243,8 +240,8 @@ struct
         ghost_move_accumulators = ghost_accumulators';
       }
 
-  (** [update_world w] is the main game loop step. It dispatches to other
-      functions based on the current [w.state]. *)
+  (** [update_world w] sends information to other functions based on the current
+      [w.state]. *)
   let update_world w =
     match w.state with
     | Intro -> w (* No updates happen in Intro state *)
@@ -271,7 +268,7 @@ struct
                 update_high_score;
               }
           in
-          (* Timer done, no lives left *)
+          (* Timer done so no lives left *)
           { w with state = game_end_info; lives = 0 })
         else respawn w
     | PowerUp ->
@@ -282,7 +279,7 @@ struct
             List.map
               (fun g ->
                 if Ghost.is_eaten g then
-                  Ghost.respawn g (* dumb ghost failsafe*)
+                  Ghost.respawn g (* Failsafe for a dumb ghost *)
                 else
                   let g = Ghost.set_frightened g false in
                   Ghost.set_eaten g false)
