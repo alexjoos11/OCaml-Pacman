@@ -670,6 +670,92 @@ let test_ghost_random_fallback _ =
   let valid = [ (10, 11); (10, 9) ] in
   assert_bool "Ghost did not move to a valid fallback" (List.mem (gx, gy) valid)
 
+(* Module stub used to check ghosts update their state when frightened or
+   eaten *)
+module StatefulGhost : GHOST = struct
+  type t = {
+    x : int;
+    y : int;
+    frightened : bool;
+    eaten : bool;
+    home : bool;
+  }
+
+  let create x y _ = { x; y; frightened = false; eaten = false; home = false }
+  let position g = (g.x, g.y)
+  let next_position g ~pac_pos:_ = (g.x, g.y)
+  let move_to g nx ny = { g with x = nx; y = ny }
+  let is_frightened g = g.frightened
+  let is_eaten g = g.eaten
+  let is_at_home g = g.home
+  let set_frightened g b = { g with frightened = b }
+  let set_eaten g b = { g with eaten = b }
+  let respawn g = { g with frightened = false; eaten = false; home = true }
+  let update_duration g ~time:_ = g
+  let speed_factor _ = 1.0
+  let color _ = Raylib.Color.red
+end
+
+(* Module stub used to have a maze that always has a power pellet at (5,5) *)
+module PowerPelletMaze = struct
+  include StubMaze
+
+  let item_at _ x y = if x = 5 && y = 5 then Some PowerPellet else None
+end
+
+(* Module stub used to have a cherry at (5,5) *)
+module CherryMaze = struct
+  include StubMaze
+
+  let item_at _ x y = if x = 5 && y = 5 then Some Cherry else None
+end
+
+(* Engine modules using the above module stubs *)
+module EnginePower =
+  Paclib.Game_engine.Make (PowerPelletMaze) (StubPacman) (StatefulGhost)
+    (StubConstants)
+
+module EngineCherry =
+  Paclib.Game_engine.Make (CherryMaze) (StubPacman) (StatefulGhost)
+    (StubConstants)
+
+(* Test speedup timer *)
+let test_speedup_timer_trigger _ =
+  let w = Engine.start (mk_world ()) in
+
+  (* 8.5 seconds * 60 fps = 510 frames. Set frames_alive to 509 so next tick
+     hits 510 *)
+  let target_frame = int_of_float (8.5 *. 60.0) in
+  let w = { w with frames_alive = target_frame - 1; speedup_timer = 0 } in
+  let w' = Engine.update_world w in
+  assert_equal ~printer:string_of_int 60 w'.speedup_timer;
+  let w'' = Engine.update_world w' in
+  assert_equal ~printer:string_of_int 59 w''.speedup_timer
+
+(* Test to check power pellet is eaten *)
+let test_eat_power_pellet _ =
+  let pac = StubPacman.create 4 5 in
+  let ghost = StatefulGhost.create 10 10 Paclib.Ai.defaulty in
+  let w = EnginePower.initial_world () pac [ ghost ] |> EnginePower.start in
+  let w' = EnginePower.update_world w in
+
+  assert_equal ~printer:string_of_game_state PowerUp w'.state;
+  assert_equal ~printer:string_of_int StubConstants.power_pellet_score w'.score;
+  assert_equal ~printer:string_of_int StubConstants.power_pellet_duration_frames
+    w'.powerup_timer;
+  assert_bool "Ghost should be frightened"
+    (StatefulGhost.is_frightened (List.hd w'.ghosts))
+
+(* Test to check cherry is eaten *)
+let test_eat_cherry _ =
+  let pac = StubPacman.create 4 5 in
+  let ghost = StatefulGhost.create 10 10 Paclib.Ai.defaulty in
+  let w = EngineCherry.initial_world () pac [ ghost ] |> EngineCherry.start in
+  let w' = EngineCherry.update_world w in
+
+  assert_equal ~printer:string_of_game_state Playing w'.state;
+  assert_equal ~printer:string_of_int StubConstants.cherry_score w'.score
+
 (* Test Suite *)
 let suite =
   "game_engine tests"
@@ -708,6 +794,9 @@ let suite =
          "ghost fallback on wall" >:: test_ghost_fallback_on_wall;
          "ghost stuck surrounded" >:: test_ghost_stuck_if_surrounded;
          "ghost random fallback" >:: test_ghost_random_fallback;
+         "speedup timer triggers" >:: test_speedup_timer_trigger;
+         "eat power pellet" >:: test_eat_power_pellet;
+         "eat cherry" >:: test_eat_cherry;
        ]
 
 let _ = run_test_tt_main suite
